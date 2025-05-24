@@ -1,4 +1,3 @@
-
 <style>
     .logo-container {
         position: fixed;
@@ -52,7 +51,7 @@ document.addEventListener("DOMContentLoaded", function() {
             logo.classList.add("scrolled");
             elements.forEach(el => el.style.fill = "#ffffff"); 
         } else {
-            logo.classList.add("remove");
+            logo.classList.remove("scrolled");
             elements.forEach(el => el.style.fill = "#000000"); 
         }
     });
