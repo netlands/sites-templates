@@ -47,7 +47,7 @@
 document.addEventListener("DOMContentLoaded", function() { 
     const url = new URL(window.location.href);
     
-    if (url.pathname === "/") {
+    if (url.pathname === "/" || window.location.pathname === "/en" || window.location.pathname === "/ja") {
         document.body.classList.add("first-page");
         let element = document.getElementById("logo");
         if (element.parentNode.tagName === "A") {
