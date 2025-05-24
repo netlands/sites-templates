@@ -15,16 +15,22 @@
     
     header a span {
         display: none !important;
-    }   
+    } 
+
+    .first-page #logo {
+        width: 400px;
+        height: 120px;
+        margin: 60px;
+    }
+        
 </style>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() { 
     const url = new URL(window.location.href);
-    const element = document.getElementById("logo-container");
     
-    if (url.pathname === "/" && element) {
-        element.classList.add("first-page");
+    if (url.pathname === "/") {
+        document.body.classList.add("first-page");
     }
     
     const logo = document.getElementById("logo");
