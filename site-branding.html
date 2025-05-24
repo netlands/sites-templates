@@ -17,10 +17,20 @@
         display: none !important;
     } 
 
+    #logo {
+        width: 200px;
+        height: 60px;    
+    }
+    
+    #logo.scrolled {
+        width: 150px;
+        height: 40px;
+    }
+        
     .first-page #logo {
         width: 300px;
         height: 90px;
-        margin: 60px;
+        margin: 40px;
     }
         
 </style>
@@ -39,12 +49,10 @@ document.addEventListener("DOMContentLoaded", function() {
     window.addEventListener("scroll", function() {
         const logo = document.getElementById("logo");
         if (window.scrollY > 50) {
-            logo.style.width = "150px";
-            logo.style.height = "40px";
+            logo.classList.add("scrolled");
             elements.forEach(el => el.style.fill = "#ffffff"); 
         } else {
-            logo.style.width = "200px";
-            logo.style.height = "60px";
+            logo.classList.add("remove");
             elements.forEach(el => el.style.fill = "#000000"); 
         }
     });
