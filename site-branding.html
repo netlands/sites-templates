@@ -12,6 +12,9 @@
             left: auto;
             transform: none;
         }
+        div[title="Show sidebar"] > svg {
+            z-index: 99999; 
+        }  
     }
 
     .logo-container svg {
@@ -32,7 +35,7 @@
     div:has(> div[data-tooltip="Open search bar"]) {
         display: none !important;
     }
-
+   
     #logo {
         width: 200px;
         height: 60px;    
