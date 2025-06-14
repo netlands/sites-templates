@@ -1,4 +1,12 @@
 <style>
+
+:root {
+    --logo-light: #ffffff;
+    --logo-dark: #000000;
+    --accent-color: #e95283;
+    --accent-light: #de88a6;    
+}
+   
 .logo-container {
     position: fixed;
     top: 10px;
@@ -106,14 +114,17 @@ document.addEventListener("DOMContentLoaded", function() {
     const logo = document.getElementById("logo");
     const elements = logo.querySelectorAll("[style*='fill']"); 
     const container = document.getElementById("logo-container");
+    const name = document.getElementById("salon-name");
     
     window.addEventListener("scroll", function() {
         if (window.scrollY > 50) {
             container.classList.add("scrolled");
             elements.forEach(el => el.style.fill = "#ffffff"); 
+            name.style.color = "#ffffff";
         } else {
             container.classList.remove("scrolled");
             elements.forEach(el => el.style.fill = "#000000"); 
+            name.style.color = "#000000";
         }
     });
 })
