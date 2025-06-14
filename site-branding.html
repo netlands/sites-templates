@@ -88,7 +88,10 @@ document.addEventListener("DOMContentLoaded", function() {
         let element = document.getElementById("logo");
         if (element.parentNode.tagName === "A") {
             let parent = element.parentNode;
-            parent.replaceWith(parent.innerHTML);
+            while (parent.firstChild) {
+                parent.parentNode.insertBefore(parent.firstChild, parent);
+            }        
+            parent.remove(); 
         }        
     }
     
