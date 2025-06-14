@@ -67,15 +67,16 @@
 
     #salon-name {
         text-align: center; 
-        margin-top: -12px; 
-        font-size: 24px
+        margin-top: -10px; 
+        font-size: 20px
     }
 
-    #salon-name {
+    .first-page #salon-name {
         text-align: center; 
         margin-top: -12px; 
         font-size: 24px
     }    
+    
 </style>
 
 <script>
@@ -85,9 +86,10 @@ document.addEventListener("DOMContentLoaded", function() {
     if (url.pathname === "/" || window.location.pathname === "/en" || window.location.pathname === "/ja") {
         document.body.classList.add("first-page");
         let element = document.getElementById("logo");
+        let element2 = document.getElementById("salon-name");
         if (element.parentNode.tagName === "A") {
             let parent = element.parentNode;
-            parent.replaceWith(element);
+            parent.replaceWith(element + element2);
         }        
     }
     
