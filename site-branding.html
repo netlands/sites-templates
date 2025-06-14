@@ -14,9 +14,11 @@
     }
 
     div[title="Show sidebar"]:has(svg),
-    div[title="Close sidebar"]:has(svg),
-    nav {
+    div[title="Close sidebar"]:has(svg) {
         z-index: 999;
+    }
+    nav {
+        z-index: 99 !important;  
     }
 }
 
