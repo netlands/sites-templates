@@ -86,10 +86,9 @@ document.addEventListener("DOMContentLoaded", function() {
     if (url.pathname === "/" || window.location.pathname === "/en" || window.location.pathname === "/ja") {
         document.body.classList.add("first-page");
         let element = document.getElementById("logo");
-        let element2 = document.getElementById("salon-name");
         if (element.parentNode.tagName === "A") {
             let parent = element.parentNode;
-            parent.replaceWith(element + element2);
+            parent.replaceWith(parent.innerHTML);
         }        
     }
     
