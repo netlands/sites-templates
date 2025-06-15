@@ -182,7 +182,14 @@ document.addEventListener("DOMContentLoaded", function() {
                         }
                     `;
         	    };
-        
+
+               if (findFormatTag("%hidelinks%")) {
+                    style.innerHTML +=  `
+                        nav[role="navigation"] {
+                            display: none;
+                        }
+                    `;
+        	    };
         } else {        
         	/* do nothing */
         }
