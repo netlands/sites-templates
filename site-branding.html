@@ -14,6 +14,10 @@
     z-index: 99;
 }
 
+nav[role="navigation"] {
+    /*  text-align: left !important;  */
+}
+    
 @media (max-width: 767px) {
     .logo-container {
         right: 10px;
@@ -164,6 +168,9 @@ document.addEventListener("DOMContentLoaded", function() {
                             right: 0px !important;
                             left: auto !important;
                             margin-right: 40px !important;
+                        }
+                        nav[role="navigation"] {
+                            text-align: left !important;
                         }
                     `;
         	    };
