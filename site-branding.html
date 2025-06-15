@@ -138,8 +138,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
         elements.forEach(element => {
             element.childNodes.forEach(node => {
-                if (node.nodeType === Node.TEXT_NODE) {
-                    node.textContent = node.textContent.replace(/%(\S+)%/g, '<span class="hidden">%$1%</span>'); 
+                if (node.nodeType === Node.TEXT_NODE && node.textContent.match(/%(\S+)%/g)) {
+                    let newHTML = node.textContent.replace(/%(\S+)%/g, '<span class="hidden">%$1%</span>');
+                    let wrapper = document.createElement("span");
+                    wrapper.innerHTML = newHTML;
+                    node.replaceWith(wrapper); // Replace text node with new span-wrapped HTML
                 }
             });
         });
