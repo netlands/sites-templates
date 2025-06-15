@@ -149,20 +149,19 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function findFormatTag(tagName) {
-        const elements = document.body.querySelectorAll("*:not(script):not(style)");       
-        elements.forEach(element => {
-            if (element.childNodes.length) {
-                element.childNodes.forEach(node => {
-                    if (node.nodeType === Node.TEXT_NODE && node.textContent.includes(tagName)) {
-                        return true;
-                    } else {
-                        return false;
-                    };
-                });
-            }
-        });
-    } 
+        const elements = document.body.querySelectorAll("*:not(script):not(style)");
     
+        for (let element of elements) {
+            for (let node of element.childNodes) {
+                if (node.nodeType === Node.TEXT_NODE && node.textContent.includes(tagName)) {
+                    return true; // Immediately return if found
+                }
+            }
+        }
+    
+        return false; // If nothing was found
+    }
+  
 </script>
 
 
