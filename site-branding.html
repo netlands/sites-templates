@@ -156,7 +156,8 @@ document.addEventListener("DOMContentLoaded", function() {
         if (/%\S+%/.test(document.body.textContent)) {
         	let style = document.createElement("style");
         	document.body.appendChild(style);        
-        
+            style.innerHTML +=  `/* Custom CSS content goes here */`
+
                 if (findFormatTag("%logoright%")) {
                     style.innerHTML +=  `
                         .logo-container {
@@ -164,7 +165,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             left: auto !important;
                         }
                     `;
-        	};
+        	    };
         
                 if (findFormatTag("%logolight%")) {
                     style.innerHTML +=  `
@@ -172,7 +173,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             filter: invert(1);
                         }
                     `;
-        	};
+        	    };
         
         } else {        
         	/* do nothing */
