@@ -155,11 +155,9 @@ document.addEventListener("DOMContentLoaded", function() {
    function updateStyles() {
         if (/%\S+%/.test(document.body.textContent)) {
         	let style = document.createElement("style");
-        	document.body.appendChild(style);
-        
+        	document.body.appendChild(style);        
         
                 if (findFormatTag("%logoright%")) {
-                    let style = document.createElement("style");
                     style.innerHTML +=  `
                         .logo-container {
                             right: 0px !important;
@@ -169,7 +167,6 @@ document.addEventListener("DOMContentLoaded", function() {
         	};
         
                 if (findFormatTag("%logolight%")) {
-                    let style = document.createElement("style");
                     style.innerHTML +=  `
                         .logo-container:not(.scrolled) {
                             filter: invert(1);
