@@ -134,14 +134,16 @@ document.addEventListener("DOMContentLoaded", function() {
    function updateLogo() {
         if (findFormatTag("$logoright")) {
             let style = document.createElement("style");
+            console.log("yo");
             style.innerHTML = `
                 .logo-container {
                     right: 0px !important;
                     left: auto !important;
                 }
             `;
-            document.head.appendChild(style);
+            document.body.appendChild(style);
         } else {
+            console.log("yay");
             /* do nothing */
         }
     }
