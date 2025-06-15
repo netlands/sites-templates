@@ -153,19 +153,34 @@ document.addEventListener("DOMContentLoaded", function() {
 })
 
    function updateStyles() {
-        if (findFormatTag("%logoright%")) {
-            let style = document.createElement("style");
-            style.innerHTML = `
-                .logo-container {
-                    right: 0px !important;
-                    left: auto !important;
-                }
-            `;
-            document.body.appendChild(style);
-        } else {
-            /* do nothing */
+        if (/%\S+%/.test(document.body.textContent)) {
+        	let style = document.createElement("style");
+        	document.body.appendChild(style);
+        
+        
+                if (findFormatTag("%logoright%")) {
+                    let style = document.createElement("style");
+                    style.innerHTML +=  `
+                        .logo-container {
+                            right: 0px !important;
+                            left: auto !important;
+                        }
+                    `;
+        	};
+        
+                if (findFormatTag("%logolight%")) {
+                    let style = document.createElement("style");
+                    style.innerHTML +=  `
+                        .logo-container:not(.scrolled) {
+                            filter: invert(1);
+                        }
+                    `;
+        	};
+        
+        } else {        
+        	/* do nothing */
         }
-    }
+}
 
     function findFormatTag(tagName) {
         const elements = document.body.querySelectorAll("*:not(script):not(style)");
