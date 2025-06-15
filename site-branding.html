@@ -156,7 +156,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (/%\S+%/.test(document.body.textContent)) {
         	let style = document.createElement("style");
         	document.body.appendChild(style);        
-            style.innerHTML +=  `/* Custom CSS content goes here */`
+            style.innerHTML +=  `/* Custom CSS content goes here */`;
 
                 if (findFormatTag("%logoright%")) {
                     style.innerHTML +=  `
