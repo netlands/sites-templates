@@ -93,6 +93,11 @@ div:has(> div[data-tooltip="Open search bar"]) {
 .first-page .logo-container.scrolled #salon-name {
     margin-top: 0;
 }
+
+.hidden {
+    display: none;
+}
+
 </style>
 
 <script>
@@ -128,13 +133,25 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-     updateLogo();
+    function hideTags() {
+        const elements = document.body.querySelectorAll("*:not(script):not(style)");
+
+        elements.forEach(element => {
+            element.childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    node.textContent = node.textContent.replace(/%(\S+)%/g, '<span class="hidden">%$1%</span>'); 
+                }
+            });
+        });
+    }
+
+    hideTags();
+    updateStyles();
 })
 
-   function updateLogo() {
+   function updateStyles() {
         if (findFormatTag("$logoright")) {
             let style = document.createElement("style");
-            console.log("yo");
             style.innerHTML = `
                 .logo-container {
                     right: 0px !important;
@@ -143,7 +160,6 @@ document.addEventListener("DOMContentLoaded", function() {
             `;
             document.body.appendChild(style);
         } else {
-            console.log("yay");
             /* do nothing */
         }
     }
