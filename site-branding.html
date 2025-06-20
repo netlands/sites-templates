@@ -14,18 +14,18 @@ body[lang="en"] li:has(a[href="/en"]) {
   display: none;
 }
 
-body[lang="en"] li:has(a[href="/ja"])::before {
+body[lang="en"] a[href="/ja"]::before {
   content: "🌐"; /* Unicode globe symbol */
   margin-right: 0.4em;
   display: inline-block;
   font-family: "Segoe UI Symbol", "Symbola", sans-serif;    
 }
 
-body[lang="ja"] li:has(a[href="/en"])::before {
+body[lang="ja"] a[href="/en"]::before {
   content: "🌐"; /* Unicode globe symbol */
   margin-right: 0.4em;
   display: inline-block;
-  font-family: "Segoe UI Symbol", "Symbola", sans-serif;    
+  font-family: "Segoe UI Symbol", "Symbola", sans-serif;  
 }
     
 body[lang="en"] a[href^="/ja"]:not([href="/ja"]) {
