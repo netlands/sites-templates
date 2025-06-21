@@ -59,7 +59,6 @@ function getVisibleTextContent(root = document.body) {
   return text;
 }
 
-// Usage
 if (getVisibleTextContent().includes('%logodark%')) {
     document.querySelectorAll('header a[href="/home"] img').forEach((img, i) => {
       console.log(`Image ${i}:`, img.className);
