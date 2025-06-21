@@ -9,6 +9,15 @@
 
 
 window.addEventListener('DOMContentLoaded', () => {
+
+if (document.body.innerText.includes('%logodark%')) {
+  const img = document.querySelector('img[aria-label="Site home"]');
+  if (img) {
+    img.style.filter = 'invert(1)';
+  }
+}
+
+
   
   const regex = /%([^\s%]+)%/g;
 
@@ -36,12 +45,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   wrapMatches(document.body);
 
-if (document.body.innerText.includes('%logodark%')) {
-  const img = document.querySelector('img[aria-label="Site home"]');
-  if (img) {
-    img.style.filter = 'invert(1)';
-  }
-}
+
   
 });
   
