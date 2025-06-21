@@ -38,19 +38,17 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   wrapMatches(document.body);
-
-  // Delay execution slightly to ensure image is rendered
-  requestAnimationFrame(() => {
-    if (document.body.textContent.includes('%logodark%')) {
-      console.log("yay!");
-      const img = document.querySelector('a[href="/home"] img[aria-label="Site home"]');
-      if (img && !img.classList.contains('logodark')) {
-        img.classList.add('logodark');
-      } else {
-        console.log("yo!");
-      }
+  
+  if (document.body.textContent.includes('%logodark%')) {
+    console.log("yay!");
+    const img = document.querySelector('a[href="/home"] img[aria-label="Site home"]');
+    if (img && !img.classList.contains('logodark')) {
+      img.classList.add('logodark');
+    } else {
+      console.log("yo!");
     }
-  });
+  }
+
 
 
 
