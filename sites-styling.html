@@ -9,13 +9,8 @@
 
 
 window.addEventListener('DOMContentLoaded', () => {
-
-
-
-
   
   const regex = /%([^\s%]+)%/g;
-
   const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'SELECT']);
 
   function wrapMatches(node) {
