@@ -3,6 +3,10 @@
   .hidden {
     display: none;
   }  
+  img.logodark {
+    filter: invert(1);
+  }
+
 </style>
 <script>
   /*/ script code goes here */
@@ -42,7 +46,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const img = document.querySelector('header a[href="/home"] img');
       if (img) {
         console.log("ya!");
-        img.style.filter = 'invert(1)';
+        img.classList.add('logodark');
       } else {
         console.log("yo!");
       }
