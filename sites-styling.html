@@ -41,7 +41,7 @@ window.addEventListener('DOMContentLoaded', () => {
   
   if (document.body.textContent.includes('%logodark%')) {
     console.log("yay!");
-    document.querySelectorAll('a[href="/home"] img').forEach((img, i) => {
+    document.querySelectorAll('header a[href="/home"] img').forEach((img, i) => {
       console.log(`Image ${i}:`, img.className);
       img.classList.add('logodark'); // this is safe even if the class is already present
     });
