@@ -1,6 +1,48 @@
 <style>
   /* styles go here */
+  .hidden {
+    display: none;
+  }  
 </style>
 <script>
   /*/ script code goes here */
+
+
+window.addEventListener('DOMContentLoaded', () => {
+  
+  const regex = /%([^\s%]+)%/g;
+
+  function wrapMatches(node) {
+    if (node.nodeType === Node.TEXT_NODE && node.parentNode) {
+      const text = node.textContent;
+      if (!regex.test(text)) return;
+
+      const frag = document.createDocumentFragment();
+      let lastIndex = 0;
+      text.replace(regex, (match, p1, offset) => {
+        frag.append(text.slice(lastIndex, offset));
+        const span = document.createElement('span');
+        span.className = 'hidden';
+        span.textContent = `%${p1}%`;
+        frag.append(span);
+        lastIndex = offset + match.length;
+      });
+      frag.append(text.slice(lastIndex));
+      node.parentNode.replaceChild(frag, node);
+    } else if (node.nodeType === Node.ELEMENT_NODE && node.childNodes) {
+      node.childNodes.forEach(wrapMatches);
+    }
+  }
+
+  wrapMatches(document.body);
+
+if (document.body.innerText.includes('%logodark%')) {
+  const img = document.querySelector('img[aria-label="Site home"]');
+  if (img) {
+    img.style.filter = 'invert(1)';
+  }
+}
+  
+});
+  
 </script>
