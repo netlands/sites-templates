@@ -36,7 +36,7 @@ window.addEventListener('DOMContentLoaded', () => {
   wrapMatches(document.body);
 
 if (document.body.textContent.includes('%logodark%')) {
-  const img = document.querySelector('img[aria-label="Site home"]');
+  const img = document.querySelector('header a[href="/home"] img');
   if (img) {
     img.style.filter = 'invert(1)';
   }
