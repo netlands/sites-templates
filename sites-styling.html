@@ -39,7 +39,28 @@ window.addEventListener('DOMContentLoaded', () => {
 
   wrapMatches(document.body);
   
-  if (document.body.textContent.includes('%logodark%')) {
+function getVisibleTextContent(root = document.body) {
+  const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE']);
+  let text = '';
+
+  function walk(node) {
+    if (skipTags.has(node.nodeName)) return;
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      text += node.textContent;
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      for (const child of node.childNodes) {
+        walk(child);
+      }
+    }
+  }
+
+  walk(root);
+  return text;
+}
+
+// Usage
+if (getVisibleTextContent().includes('%logodark%')) {
     document.querySelectorAll('header a[href="/home"] img').forEach((img, i) => {
       console.log(`Image ${i}:`, img.className);
       img.classList.add('logodark'); // this is safe even if the class is already present
