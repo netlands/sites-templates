@@ -10,19 +10,16 @@
 
 window.addEventListener('DOMContentLoaded', () => {
 
-if (document.body.innerText.includes('%logodark%')) {
-  const img = document.querySelector('img[aria-label="Site home"]');
-  if (img) {
-    img.style.filter = 'invert(1)';
-  }
-}
+
 
 
   
   const regex = /%([^\s%]+)%/g;
 
+  const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'SELECT']);
+
   function wrapMatches(node) {
-    if (node.nodeType === Node.TEXT_NODE && node.parentNode) {
+    if (node.nodeType === Node.TEXT_NODE && node.parentNode && !skipTags.has(node.parentNode.nodeName)) {
       const text = node.textContent;
       if (!regex.test(text)) return;
 
@@ -38,12 +35,19 @@ if (document.body.innerText.includes('%logodark%')) {
       });
       frag.append(text.slice(lastIndex));
       node.parentNode.replaceChild(frag, node);
-    } else if (node.nodeType === Node.ELEMENT_NODE && node.childNodes) {
+    } else if (node.nodeType === Node.ELEMENT_NODE && !skipTags.has(node.nodeName)) {
       node.childNodes.forEach(wrapMatches);
     }
   }
 
   wrapMatches(document.body);
+
+if (document.body.innerText.includes('%logodark%')) {
+  const img = document.querySelector('img[aria-label="Site home"]');
+  if (img) {
+    img.style.filter = 'invert(1)';
+  }
+}
 
 
   
