@@ -11,6 +11,22 @@
 <script>
   /*/ script code goes here */
 window.addEventListener('DOMContentLoaded', () => {
+
+
+    const url = new URL(window.location.href);
+    
+    if (url.pathname === "/" || window.location.pathname === "/en" || window.location.pathname === "/ja") {
+        document.body.classList.add("first-page");
+    }
+
+    window.addEventListener("scroll", function() {
+        if (window.scrollY > 50) {
+            document.body.classList.add("scrolled");
+        } else {
+            document.body.lassList.remove("scrolled");
+        }
+    });
+  
   
   const regex = /%([^\s%]+)%/g;
   const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'SELECT']);
