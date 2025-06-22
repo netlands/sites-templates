@@ -50,9 +50,9 @@ window.addEventListener('DOMContentLoaded', () => {
     } else if (node.nodeType === Node.ELEMENT_NODE && !skipTags.has(node.nodeName)) {
       node.childNodes.forEach(wrapMatches);
     }
-  }*/
+  }
 
-  wrapMatches(document.body);
+  wrapMatches(document.body);*/
   
 function getVisibleTextContent(root = document.body) {
   const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE']);
