@@ -26,6 +26,27 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
   
+const html = document.documentElement;
+const footer = document.querySelector('footer');
+
+if (html.classList.contains('translated') && footer) {
+  const note = document.createElement('div');
+  note.textContent = 'This content was AI translated.';
+  note.style.position = 'absolute';
+  note.style.bottom = '10px';
+  note.style.right = '10px';
+  note.style.fontSize = '0.8em';
+  note.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+  note.style.padding = '4px 8px';
+  note.style.borderRadius = '4px';
+  note.style.color = '#555';
+
+  footer.style.position = 'relative';
+  footer.appendChild(note);
+}
+
+
+
   
   /* const regex = /%([^\s%]+)%/g;
   const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'SELECT']);
