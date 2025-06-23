@@ -30,20 +30,38 @@ const html = document.documentElement;
 const footer = document.querySelector('footer');
 
 if (html.classList.contains('translated') && footer) {
-  const note = document.createElement('div');
-  note.textContent = 'This content was AI translated.';
-  note.style.position = 'absolute';
-  note.style.bottom = '10px';
-  note.style.right = '10px';
-  note.style.fontSize = '0.8em';
-  note.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
-  note.style.padding = '4px 8px';
-  note.style.borderRadius = '4px';
-  note.style.color = '#555';
+  // Hide the first <section> inside the footer
+  const firstSection = footer.querySelector('section');
+  if (firstSection) {
+    firstSection.style.display = 'none';
+  }
 
-  footer.style.position = 'relative';
-  footer.appendChild(note);
-}
+  // Add "This content was AI translated." in the bottom-right
+  const rightNote = document.createElement('div');
+  rightNote.textContent = 'This content was AI translated.';
+  Object.assign(rightNote.style, {
+    position: 'absolute',
+    bottom: '10px',
+    right: '10px',
+    fontSize: '0.8em',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    color: '#555'
+  });
+
+  // Add "netlands.tokyo.jp" in the bottom-left
+  const leftNote = document.createElement('div');
+  leftNote.textContent = 'netlands.tokyo.jp';
+  Object.assign(leftNote.style, {
+    position: 'absolute',
+    bottom: '10px',
+    left: '10px',
+    fontSize: '0.8em',
+    color: '#555'
+  });
+
+
 
 
 
