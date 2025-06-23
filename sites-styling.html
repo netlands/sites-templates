@@ -61,7 +61,11 @@ if (html.classList.contains('translated') && footer) {
     color: '#555'
   });
 
-
+  // Ensure footer has relative positioning
+  footer.style.position = 'relative';
+  footer.appendChild(rightNote);
+  footer.appendChild(leftNote);
+}
 
 
 
