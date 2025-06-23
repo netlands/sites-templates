@@ -7,6 +7,12 @@
     filter: brightness(0) saturate(100%) invert(57%) sepia(5%) saturate(305%) hue-rotate(169deg) brightness(91%) contrast(84%);
   }
 
+  @media (max-width: 399px) {
+    #footer-left {
+      display: none;
+    }
+  }
+  
 </style>
 <script>
   /*/ script code goes here */
@@ -45,19 +51,22 @@ if (html.classList.contains('translated') && footer) {
     firstSection.style.display = 'none';
   }
 
-  // Create the right note with Material icon
+  // Create the right note with icon
   const rightNote = document.createElement('div');
-  rightNote.style.position = 'absolute';
-  rightNote.style.bottom = '10px';
-  rightNote.style.right = '10px';
-  rightNote.style.fontSize = '0.8em';
-  rightNote.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
-  rightNote.style.padding = '4px 8px';
-  rightNote.style.borderRadius = '4px';
-  rightNote.style.color = '#555';
-  rightNote.style.display = 'flex';
-  rightNote.style.alignItems = 'center';
-  rightNote.style.gap = '4px';
+  rightNote.id = 'ai-translation-note';
+  Object.assign(rightNote.style, {
+    position: 'absolute',
+    bottom: '10px',
+    right: '10px',
+    fontSize: '0.8em',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    color: '#555',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px'
+  });
 
   const icon = document.createElement('span');
   icon.textContent = 'translate';
@@ -72,6 +81,7 @@ if (html.classList.contains('translated') && footer) {
 
   // Create the left note
   const leftNote = document.createElement('div');
+  leftNote.id = 'footer-left';
   leftNote.textContent = 'netlands.tokyo.jp';
   Object.assign(leftNote.style, {
     position: 'absolute',
@@ -86,7 +96,6 @@ if (html.classList.contains('translated') && footer) {
   footer.appendChild(rightNote);
   footer.appendChild(leftNote);
 }
-
 
   
   /* const regex = /%([^\s%]+)%/g;
