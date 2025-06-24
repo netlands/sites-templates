@@ -74,7 +74,19 @@ if (html.classList.contains('translated') && footer) {
   icon.style.fontSize = '1em';
 
   const label = document.createElement('span');
-  label.textContent = 'This content was AI translated.';
+  const htmlEl = document.documentElement; // selects the <html> element
+
+  const provider = htmlEl.getAttribute('data-provider');
+  if (provider && provider.trim() !== '') {
+      // Do something with the provider value
+      console.log(`Translated by ${provider}`);
+       label.textContent = `Translated from English by ${provider} AI`
+  } else {
+      label.textContent = 'This content was AI translated.';
+  }
+
+  
+
 
   rightNote.appendChild(icon);
   rightNote.appendChild(label);
