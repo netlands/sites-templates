@@ -78,13 +78,14 @@ if (html.classList.contains('translated') && footer) {
 
   const provider = htmlEl.getAttribute('data-provider');
   if (provider && provider.trim() !== '') {
+      // get friendly name
       switch (provider) {
-      case 'DEEPL':
-        provider = 'DeepL';
-        break;
-      case 'AZURE':
-        provider = 'Azure';
-        break;
+        case 'DEEPL':
+          provider = 'DeepL';
+          break;
+        case 'AZURE':
+          provider = 'Azure';
+          break;
       }
       console.log(`Translated by ${provider}`);
       label.textContent = `Translated from English by ${provider} AI`
