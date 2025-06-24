@@ -25,10 +25,12 @@ window.addEventListener('DOMContentLoaded', () => {
     if (
       path === '/' ||
       path === '/home' ||
-      (segments.length === 1 && localePattern.test(segments[0]))
+      (segments.length === 1 && localePattern.test(segments[0])) ||
+      (segments.length === 2 && localePattern.test(segments[0]) && segments[1] === 'home')
     ) {
       document.body.classList.add('first-page');
     }
+
 
     window.addEventListener("scroll", function() {
         if (window.scrollY > 50) {
