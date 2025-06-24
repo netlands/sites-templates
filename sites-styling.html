@@ -76,7 +76,7 @@ if (html.classList.contains('translated') && footer) {
   const label = document.createElement('span');
   const htmlEl = document.documentElement; // selects the <html> element
 
-  const provider = htmlEl.getAttribute('data-provider');
+  let provider = htmlEl.getAttribute('data-provider');
   if (provider && provider.trim() !== '') {
       // get friendly name
       switch (provider) {
