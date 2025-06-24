@@ -18,10 +18,16 @@
   /*/ script code goes here */
 window.addEventListener('DOMContentLoaded', () => {
 
-    const url = new URL(window.location.href);
+    const path = window.location.pathname;
+    const segments = path.split('/').filter(Boolean); // removes empty entries from leading/trailing slashes
+    const localePattern = /^(?:[a-z]{2}|[a-z]{2}-[a-z]{2,4})$/;
     
-    if (url.pathname === "/" || url.pathname === "/home" || window.location.pathname === "/en" || window.location.pathname === "/ja") {
-        document.body.classList.add("first-page");
+    if (
+      path === '/' ||
+      path === '/home' ||
+      (segments.length === 1 && localePattern.test(segments[0]))
+    ) {
+      document.body.classList.add('first-page');
     }
 
     window.addEventListener("scroll", function() {
