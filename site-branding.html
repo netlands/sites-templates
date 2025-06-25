@@ -14,7 +14,7 @@ body[lang="en"] li:has(a[href="/en"]) {
 }
 
     
-body[lang="en"] li a[href="/ja"]::before {
+body[lang="en"] li a[href="/ja"]::before, body[lang="ja"] li a[href="/en"]::before {
   content: "language";
   font-family: "Material Symbols Sharp";
   font-weight: normal;
@@ -26,13 +26,6 @@ body[lang="en"] li a[href="/ja"]::before {
   margin-right: 0.4em;
   display: inline-block;
   vertical-align: text-bottom;  
-}
-
-body[lang="ja"] li a[href="/en"]::before {
-  content: "🌐"; /* Unicode globe symbol */
-  margin-right: 0.4em;
-  display: inline-block;
-  font-family: "Segoe UI Symbol", "Symbola", sans-serif;  
 }
    
 body[lang="en"] a[href^="/ja"]:not([href="/ja"]) {
