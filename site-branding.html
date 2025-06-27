@@ -13,6 +13,21 @@ body[lang="en"] li:has(a[href="/en"]) {
   display: none;
 }
 
+div:has(nav) {
+padding: 0 !important;
+}
+
+nav {
+    background-color: var(--accent-light) !important;
+}    
+
+div:has(nav) + div {
+  /* styles for the next div */
+  background-color: var(--accent-light) !important;
+}
+
+    
+    
     
 body[lang="en"] li a[href="/ja"]::before, body[lang="ja"] li a[href="/en"]::before {
   content: "language";
