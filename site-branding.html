@@ -61,6 +61,10 @@ h1 {
     z-index: 99;
 }
 
+body.scrolled .logo-container {
+    filter: invert(1);
+}
+    
 nav[role="navigation"] {
     /*  text-align: left !important;  */
 }
@@ -206,20 +210,12 @@ document.addEventListener("DOMContentLoaded", function() {
         }        
     }
     
-    const logo = document.getElementById("logo");
-    const elements = logo.querySelectorAll("[style*='fill']"); 
-    const container = document.getElementById("logo-container");
-    const name = document.getElementById("salon-name");
-    
+   
     window.addEventListener("scroll", function() {
         if (window.scrollY > 50) {
             document.body.classList.add("scrolled");
-            elements.forEach(el => el.style.fill = "#ffffff"); 
-            name.style.color = "#ffffff";
         } else {
             document.body.classList.remove("scrolled");
-            elements.forEach(el => el.style.fill = "#000000"); 
-            name.style.color = "#000000";
         }
     });
 })
