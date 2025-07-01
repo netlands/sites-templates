@@ -3,7 +3,7 @@
     --logo-light: #ffffff;
     --logo-dark: #000000;
     --accent-color: #e95283;
-    --accent-light: #de88a6;    
+    --accent-light: #de88a6;
 }
 
 body {
@@ -14,33 +14,32 @@ body {
     font-size: 12.0pt; /* 16px */
     color: black;
 }    
-    
-    
+
+
 h1 {
     font-family: 'Noto Sans JP' !important;
     font-weight: 100 !important;
     font-style: normal !important;
 }  
-    
+
 body[lang="ja"] li:has(a[href="/ja"]),
 body[lang="en"] li:has(a[href="/en"]) {
   display: none;
 }
-    
+
 div:has(nav) {
 padding: 0 !important;
 }
 
 body.scrolled nav {
     background-color: var(--accent-light) !important;
-}    
+}
 
 div:has(nav) + div {
   /* styles for the next div */
   background-color: var(--accent-light) !important;
 }
 
-    
 body[lang="en"] li a[href="/ja"]::before, body[lang="ja"] li a[href="/en"]::before {
   content: "language";
   font-family: "Material Symbols Sharp";
@@ -54,12 +53,12 @@ body[lang="en"] li a[href="/ja"]::before, body[lang="ja"] li a[href="/en"]::befo
   display: inline-block;
   vertical-align: text-bottom;  
 }
-   
+
 body[lang="en"] a[href^="/ja"]:not([href="/ja"]),
 body[lang="ja"] a[href^="/en"]:not([href="/en"]) {
   display: none;
 }  
-    
+
 .logo-container {
     position: fixed;
     top: 10px;
@@ -70,11 +69,11 @@ body[lang="ja"] a[href^="/en"]:not([href="/en"]) {
 body.custom-layout-scrolledheader .logo-container, body.scrolled .logo-container {
     filter: invert(1);
 }
-    
+
 nav[role="navigation"] {
     /*  text-align: left !important;  */
 }
-    
+
 @media (max-width: 767px) {
     .logo-container {
         right: 10px;
@@ -220,16 +219,16 @@ body.custom-layout-smallfooter .footer-top {display: none;}
 </style>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() { 
-    
-    window.addEventListener("scroll", function() {
-        if (window.scrollY > 50) {
-            document.body.classList.add("scrolled");
-        } else {
-            document.body.classList.remove("scrolled");
-        }
-    });
-})
+    document.addEventListener("DOMContentLoaded", function () {
+
+        window.addEventListener("scroll", function () {
+            if (window.scrollY > 50) {
+                document.body.classList.add("scrolled");
+            } else {
+                document.body.classList.remove("scrolled");
+            }
+        });
+    })
 
 </script>
 
