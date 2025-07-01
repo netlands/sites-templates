@@ -61,7 +61,7 @@ h1 {
     z-index: 99;
 }
 
-body.scrolled .logo-container {
+body.custom-layout-scrolledheader .logo-container, body.scrolled .logo-container {
     filter: invert(1);
 }
     
@@ -107,11 +107,12 @@ div:has(> div[data-tooltip="Open search bar"]) {
     margin-bottom: 0;
 }
 
-body.scrolled .logo-container {
+body.custom-layout-scrolledheader .logo-container, body.scrolled .logo-container {
     top: 8px;
     left: 68px;
 }
 
+body.custom-layout-scrolledheader .logo-container #logo, 
 body.scrolled .logo-container #logo,
 body.first-page.scrolled .logo-container #logo {
     width: 150px;
@@ -119,6 +120,7 @@ body.first-page.scrolled .logo-container #logo {
     margin: 0;
 }
 
+body.custom-layout-scrolledheader .logo-container a,    
 body.scrolled .logo-container a,
 body.scrolled.first-page .logo-container {
     display: flex;
@@ -198,7 +200,14 @@ body.custom-layout-hidelinks nav[role="navigation"] {
     display: none;
 }
 
-    
+
+body.custom-layout-noheader header {display: none;}
+body.custom-layout-nofooter footer {display: none;}
+body.custom-layout-scrolledheader div + nav,body.custom-layout-scrolledheader div:has(> nav),body.custom-layout-scrolledheader nav {
+  background-color:red !important;    
+}
+body.custom-layout-smallfooter .footer-top {display: none;}
+
 </style>
 
 <script>
