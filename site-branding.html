@@ -103,20 +103,20 @@ div:has(> div[data-tooltip="Open search bar"]) {
     margin-bottom: 0;
 }
 
-.logo-container.scrolled {
+body.scrolled .logo-container {
     top: 8px;
     left: 68px;
 }
 
-.logo-container.scrolled #logo,
-.first-page .logo-container.scrolled #logo {
+body.scrolled .logo-container #logo,
+body.first-page.scrolled .logo-container #logo {
     width: 150px;
     height: 40px;
     margin: 0;
 }
 
-.logo-container.scrolled a,
-.first-page .logo-container.scrolled {
+body.scrolled .logo-container a,
+body.scrolled.first-page .logo-container {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -129,7 +129,7 @@ div:has(> div[data-tooltip="Open search bar"]) {
 }
 
 #salon-name,
-.first-page .logo-container.scrolled #salon-name {
+body.first-page.scrolled #salon-name {
     text-align: center;
     margin-top: -10px;
     font-size: 20px;
@@ -140,21 +140,21 @@ div:has(> div[data-tooltip="Open search bar"]) {
     font-size: 24px;
 }
 
-.logo-container:not(.scrolled) #salon-name {
+body:not(.scrolled) #salon-name {
     font-family: "Noto Sans JP", sans-serif;
     font-optical-sizing: auto;
     font-weight: 400;
     font-style: normal;
 }
     
-.logo-container.scrolled #salon-name {
+body.scrolled #salon-name {
     font-family: "Noto Sans JP", sans-serif;
     font-optical-sizing: auto;
     font-weight: 300;
     font-style: normal;
 }
    
-.logo-container.scrolled #salon-name,
+body.scrolled #salon-name,
 .first-page .logo-container.scrolled #salon-name {
     margin-top: 0;
 }
@@ -179,7 +179,7 @@ body.custom-layout-logoright nav[role="navigation"] {
     text-align: left !important;
 }
         
-body.custom-layout-logolight .logo-container:not(.scrolled) {
+body.custom-layout-logolight:not(.scrolled) .logo-container {
     filter: invert(1);
 }
 
@@ -213,11 +213,11 @@ document.addEventListener("DOMContentLoaded", function() {
     
     window.addEventListener("scroll", function() {
         if (window.scrollY > 50) {
-            container.classList.add("scrolled");
+            document.body.classList.add("scrolled");
             elements.forEach(el => el.style.fill = "#ffffff"); 
             name.style.color = "#ffffff";
         } else {
-            container.classList.remove("scrolled");
+            document.body.classList.remove("scrolled");
             elements.forEach(el => el.style.fill = "#000000"); 
             name.style.color = "#000000";
         }
