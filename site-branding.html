@@ -167,6 +167,13 @@ body.scrolled #salon-name,
     display: none;
 }
 
+body.first-page .logo-container a {
+  pointer-events: none;
+  cursor: default;
+  text-decoration: none;
+}    
+
+        
 /* form related */
 a[title*="Open Google" i] {
     display: none !important;
@@ -196,10 +203,8 @@ body.custom-layout-hidelinks nav[role="navigation"] {
 
 <script>
 document.addEventListener("DOMContentLoaded", function() { 
-    const url = new URL(window.location.href);
     
-    if (url.pathname === "/" || window.location.pathname === "/en" || window.location.pathname === "/ja") {
-        document.body.classList.add("first-page");
+    /* if (document.body.classList.contains('first-page')) {
         let element = document.getElementById("logo");
         if (element.parentNode.tagName === "A") {
             let parent = element.parentNode;
@@ -208,7 +213,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }        
             parent.remove(); 
         }        
-    }
+    }*/
     
    
     window.addEventListener("scroll", function() {
