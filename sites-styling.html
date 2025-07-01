@@ -2,7 +2,7 @@
   /* styles go here */
   .hidden {
     display: none;
-  }  
+  }
   body:not(.scrolled) img.logodark {
     filter: brightness(0) saturate(100%) invert(57%) sepia(5%) saturate(305%) hue-rotate(169deg) brightness(91%) contrast(84%);
   }
@@ -16,7 +16,7 @@
   html.translated body.first-page div#ai-translation-note {
     background-color: whitesmoke !important;
   }
-  
+
 </style>
 <script>
   /*/ script code goes here */
@@ -25,7 +25,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
     const segments = path.split('/').filter(Boolean); // removes empty entries from leading/trailing slashes
     const localePattern = /^(?:[a-z]{2}|[a-z]{2}-[a-z]{2,4})$/;
-    
+
     if (
       path === '/' ||
       path === '/home' ||
@@ -43,7 +43,7 @@ window.addEventListener('DOMContentLoaded', () => {
             document.body.classList.remove("scrolled");
         }
     });
-  
+
 const html = document.documentElement;
 const footer = document.querySelector('footer');
 
@@ -126,7 +126,7 @@ if (html.classList.contains('translated') && footer) {
   footer.appendChild(leftNote);
 }
 
-  
+
   /* const regex = /%([^\s%]+)%/g;
   const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT', 'SELECT']);
 
@@ -153,7 +153,7 @@ if (html.classList.contains('translated') && footer) {
   }
 
   wrapMatches(document.body);*/
-  
+
 function getVisibleTextContent(root = document.body) {
   const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE']);
   let text = '';
@@ -180,7 +180,6 @@ if (getVisibleTextContent().includes('%logodark%')) {
       img.classList.add('logodark'); // this is safe even if the class is already present
     });
   }
- 
+
 });
-  
 </script>
