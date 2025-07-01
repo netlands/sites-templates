@@ -204,18 +204,6 @@ body.custom-layout-hidelinks nav[role="navigation"] {
 <script>
 document.addEventListener("DOMContentLoaded", function() { 
     
-    /* if (document.body.classList.contains('first-page')) {
-        let element = document.getElementById("logo");
-        if (element.parentNode.tagName === "A") {
-            let parent = element.parentNode;
-            while (parent.firstChild) {
-                parent.parentNode.insertBefore(parent.firstChild, parent);
-            }        
-            parent.remove(); 
-        }        
-    }*/
-    
-   
     window.addEventListener("scroll", function() {
         if (window.scrollY > 50) {
             document.body.classList.add("scrolled");
