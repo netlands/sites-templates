@@ -6,9 +6,23 @@
     --accent-light: #de88a6;    
 }
 
-body[lang="ja"] li:has(a[href="/ja"]) {
-  display: none;
-}
+body {
+    font-family: 'Noto Sans JP';
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1.5;
+    font-size: 12.0pt; // 16px
+    color: black;
+}    
+    
+    
+h1 {
+    font-family: 'Noto Sans JP' !important;
+    font-weight: 100 !important;
+    font-style: normal !important;
+}  
+    
+body[lang="ja"] li:has(a[href="/ja"]),
 body[lang="en"] li:has(a[href="/en"]) {
   display: none;
 }
@@ -41,18 +55,10 @@ body[lang="en"] li a[href="/ja"]::before, body[lang="ja"] li a[href="/en"]::befo
   vertical-align: text-bottom;  
 }
    
-body[lang="en"] a[href^="/ja"]:not([href="/ja"]) {
-  display: none;
-}
+body[lang="en"] a[href^="/ja"]:not([href="/ja"]),
 body[lang="ja"] a[href^="/en"]:not([href="/en"]) {
   display: none;
 }  
-  
-h1 {
-    font-family: 'Noto Sans JP' !important;
-    font-weight: 100 !important;
-    font-style: normal !important;
-}    
     
 .logo-container {
     position: fixed;
