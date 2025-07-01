@@ -169,6 +169,25 @@ a[title*="Open Google" i] {
     display: none !important;
 }
 
+/* custom layout tagging
+body.custom-layout-logoright logo-container {
+    right: 0px !important;
+    left: auto !important;
+    margin-right: 40px !important;
+}
+    
+body.custom-layout-logoright nav[role="navigation"] {
+    text-align: left !important;
+}
+        
+body.custom-layout-logolight .logo-container:not(.scrolled) {
+    filter: invert(1);
+}
+
+body.custom-layout-hidelinks nav[role="navigation"] {
+    display: none;
+}
+
     
 </style>
 
@@ -204,80 +223,8 @@ document.addEventListener("DOMContentLoaded", function() {
             name.style.color = "#000000";
         }
     });
-
-    /* function hideTags() {
-        const elements = document.body.querySelectorAll("*:not(script):not(style)");
-
-        elements.forEach(element => {
-            element.childNodes.forEach(node => {
-                if (node.nodeType === Node.TEXT_NODE && node.textContent.match(/%(\S+)%/g)) {
-                    let newHTML = node.textContent.replace(/%(\S+)%/g, '<span class="hidden">%$1%</span>');
-                    let wrapper = document.createElement("span");
-                    wrapper.innerHTML = newHTML;
-                    node.replaceWith(wrapper); // Replace text node with new span-wrapped HTML
-                }
-            });
-        });
-    }
-
-    hideTags(); */
-    updateStyles();
 })
 
-    
-   function updateStyles() {
-        if (/%\S+%/.test(document.body.textContent)) {
-        	let style = document.createElement("style");
-        	document.body.appendChild(style);        
-            style.innerHTML +=  `/* Custom CSS content goes here */`;
-            
-                if (findFormatTag("logoright")) {
-                    style.innerHTML +=  `
-                        .logo-container {
-                            right: 0px !important;
-                            left: auto !important;
-                            margin-right: 40px !important;
-                        }
-                        nav[role="navigation"] {
-                            text-align: left !important;
-                        }
-                    `;
-        	    };
-        
-                if (findFormatTag("logolight")) {
-                    style.innerHTML +=  `
-                        .logo-container:not(.scrolled) {
-                            filter: invert(1);
-                        }
-                    `;
-        	    };
-
-               if (findFormatTag("hidelinks")) {
-                    style.innerHTML +=  `
-                        nav[role="navigation"] {
-                            display: none;
-                        }
-                    `;
-        	    };
-        } else {        
-        	/* do nothing */
-        }
-}
-
-    function findFormatTag(tagName) {
-        const tagSymbol = "%";
-        const elements = document.body.querySelectorAll("*:not(script):not(style)");
-    
-        for (let element of elements) {
-            for (let node of element.childNodes) {
-                if (node.nodeType === Node.TEXT_NODE && node.textContent.includes(tagSymbol + tagName + tagSymbol)) {
-                    return true; // Immediately return if found
-                }
-            }
-        }
-    
-        return false; // If nothing was found
-    }
 </script>
 
 
