@@ -230,8 +230,8 @@ document.addEventListener("DOMContentLoaded", function() {
         	let style = document.createElement("style");
         	document.body.appendChild(style);        
             style.innerHTML +=  `/* Custom CSS content goes here */`;
-
-                if (findFormatTag("%logoright%")) {
+            
+                if (findFormatTag("logoright")) {
                     style.innerHTML +=  `
                         .logo-container {
                             right: 0px !important;
@@ -244,7 +244,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     `;
         	    };
         
-                if (findFormatTag("%logolight%")) {
+                if (findFormatTag("logolight")) {
                     style.innerHTML +=  `
                         .logo-container:not(.scrolled) {
                             filter: invert(1);
@@ -252,7 +252,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     `;
         	    };
 
-               if (findFormatTag("%hidelinks%")) {
+               if (findFormatTag("hidelinks")) {
                     style.innerHTML +=  `
                         nav[role="navigation"] {
                             display: none;
@@ -265,11 +265,12 @@ document.addEventListener("DOMContentLoaded", function() {
 }
 
     function findFormatTag(tagName) {
+        const tagSymbol = "%";
         const elements = document.body.querySelectorAll("*:not(script):not(style)");
     
         for (let element of elements) {
             for (let node of element.childNodes) {
-                if (node.nodeType === Node.TEXT_NODE && node.textContent.includes(tagName)) {
+                if (node.nodeType === Node.TEXT_NODE && node.textContent.includes(tagSymbol + tagName + tagSymbol)) {
                     return true; // Immediately return if found
                 }
             }
