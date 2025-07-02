@@ -13,14 +13,14 @@ body {
     line-height: 1.5;
     font-size: 12.0pt; /* 16px */
     color: black;
-}    
+}
 
 
 h1 {
     font-family: 'Noto Sans JP' !important;
     font-weight: 100 !important;
     font-style: normal !important;
-}  
+}
 
 body[lang="ja"] li:has(a[href="/ja"]),
 body[lang="en"] li:has(a[href="/en"]) {
@@ -51,13 +51,13 @@ body[lang="en"] li a[href="/ja"]::before, body[lang="ja"] li a[href="/en"]::befo
   text-transform: none;
   margin-right: 4px;
   display: inline-block;
-  vertical-align: text-bottom;  
+  vertical-align: text-bottom;
 }
 
 body[lang="en"] a[href^="/ja"]:not([href="/ja"]),
 body[lang="ja"] a[href^="/en"]:not([href="/en"]) {
   display: none;
-}  
+}
 
 .logo-container {
     position: fixed;
@@ -86,7 +86,7 @@ nav[role="navigation"] {
         z-index: 999;
     }
     nav {
-        z-index: 99 !important;  
+        z-index: 99 !important;
     }
 }
 
@@ -117,7 +117,7 @@ body.custom-layout-scrolledheader .logo-container, body.scrolled .logo-container
     left: 68px;
 }
 
-body.custom-layout-scrolledheader .logo-container #logo, 
+body.custom-layout-scrolledheader .logo-container #logo,
 body.scrolled .logo-container #logo,
 body.first-page.scrolled .logo-container #logo {
     width: 150px;
@@ -125,7 +125,7 @@ body.first-page.scrolled .logo-container #logo {
     margin: 0;
 }
 
-body.custom-layout-scrolledheader .logo-container a,    
+body.custom-layout-scrolledheader .logo-container a,
 body.scrolled .logo-container a,
 body.scrolled.first-page .logo-container {
     display: flex;
@@ -140,7 +140,7 @@ body.scrolled.first-page .logo-container {
 }
 
 #salon-name,
-body.custom-layout-scrolledheader #salon-name,    
+body.custom-layout-scrolledheader #salon-name,
 body.first-page.scrolled #salon-name {
     text-align: center;
     margin-top: -10px;
@@ -159,7 +159,7 @@ body:not(.scrolled) #salon-name {
     font-style: normal;
 }
 
-body.custom-layout-scrolledheader #salon-name,    
+body.custom-layout-scrolledheader #salon-name,
 body.scrolled #salon-name {
     font-family: "Noto Sans JP", sans-serif;
     font-optical-sizing: auto;
@@ -167,7 +167,7 @@ body.scrolled #salon-name {
     font-style: normal;
 }
 
-body.custom-layout-scrolledheader #salon-name,    
+body.custom-layout-scrolledheader #salon-name,
 body.scrolled #salon-name,
 body.scrolled.first-page .logo-container #salon-name {
     margin-top: 0;
@@ -181,9 +181,9 @@ body.first-page .logo-container a {
   pointer-events: none;
   cursor: default;
   text-decoration: none;
-}    
+}
 
-        
+
 /* form related */
 a[title*="Open Google" i] {
     display: none !important;
@@ -195,24 +195,19 @@ body.custom-layout-logoright .logo-container {
     left: auto !important;
     margin-right: 40px !important;
 }
-    
 body.custom-layout-logoright nav[role="navigation"] {
     text-align: left !important;
 }
-        
 body.custom-layout-logolight:not(.scrolled) .logo-container {
     filter: invert(1);
 }
-
-body.custom-layout-hidelinks nav[role="navigation"] {
+body.custom-layout-hidemenu header nav[role="navigation"], body.custom-layout-hidemenu header div[role="button"] {
     display: none;
 }
-
-
 body.custom-layout-noheader header {display: none;}
 body.custom-layout-nofooter footer {display: none;}
 body.custom-layout-scrolledheader div + nav,body.custom-layout-scrolledheader div:has(> nav),body.custom-layout-scrolledheader nav {
-  background-color:red !important;    
+  background-color:red !important;
 }
 body.custom-layout-smallfooter .footer-top {display: none;}
 
