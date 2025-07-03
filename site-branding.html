@@ -209,6 +209,11 @@ body.custom-layout-scrolledheader div + nav,body.custom-layout-scrolledheader di
 }
 body.custom-layout-smallfooter .footer-top {display: none;}
 
+/* link styling */
+.current {
+    filter: opacity(50%);
+}
+    
 </style>
 
 <script>
@@ -221,6 +226,36 @@ body.custom-layout-smallfooter .footer-top {display: none;}
                 document.body.classList.remove("scrolled");
             }
         });
+
+
+        /* link related */
+        document.querySelectorAll('a[href]').forEach(link => {
+          if (link.href === window.location.href) {
+            link.classList.add('current');
+          }
+        });
+              
+        const navLinks = document.querySelectorAll('a[href^="#"]');
+        const sections = document.querySelectorAll('section[id]');
+        
+        const observer = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            const id = entry.target.getAttribute('id');
+            const link = document.querySelector(`a[href="#${id}"]`);
+            if (entry.isIntersecting) {
+              document.querySelectorAll('a.current').forEach(el => el.classList.remove('current'));
+              if (link) link.classList.add('current');
+            }
+          });
+        }, { threshold: 0.6 });
+        
+        sections.forEach(section => observer.observe(section));
+
+    
+    
+    
+    
+    
     })
 
 </script>
