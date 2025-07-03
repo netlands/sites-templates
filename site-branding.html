@@ -262,6 +262,11 @@ span.icon span.external-link::after {
         document.querySelectorAll('a[href]').forEach(link => {
           if (link.href === window.location.href) {
             console.log(link.href + " : " + window.location.href);
+console.log({
+  linkHref: link.href,
+  locationHref: window.location.href
+});
+              
               link.classList.add('current');
           }
         });
