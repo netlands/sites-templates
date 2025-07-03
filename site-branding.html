@@ -241,7 +241,7 @@ span.icon span.external-link::after {
   span.external-link {
       display: inline-flex;
       align-items: center;
-      gap: 0.5em;  
+      gap: 0.1em;  
    }
 
 </style>
@@ -261,7 +261,8 @@ span.icon span.external-link::after {
         /* link related */
         document.querySelectorAll('a[href]').forEach(link => {
           if (link.href === window.location.href) {
-            link.classList.add('current');
+            console.log(link.href + " : " + window.location.href);
+              link.classList.add('current');
           }
         });
               
