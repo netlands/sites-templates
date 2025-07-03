@@ -210,8 +210,17 @@ body.custom-layout-scrolledheader div + nav,body.custom-layout-scrolledheader di
 body.custom-layout-smallfooter .footer-top {display: none;}
 
 /* link styling */
-.current {
+a.current {
     filter: opacity(50%);
+    pointer-events: none; 
+    cursor: default; 
+    color: inherit;
+    text-decoration: none; 
+}
+
+a.current:hover {    
+  text-decoration: none;
+  color: inherit;
 }
 
 span.external-link::after {
