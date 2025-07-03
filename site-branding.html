@@ -261,9 +261,7 @@ span.icon span.external-link::after {
         /* link related */
         document.querySelectorAll('a[href]').forEach(link => {
           if (link.href === window.location.href) {
-            console.log('[' + link.href + '] vs [' + window.location.href + ']');   
             link.classList.add('current-page');
-            console.log('classList is now:', link.classList.value);      
           }
         });
               
