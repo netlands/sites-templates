@@ -210,7 +210,7 @@ body.custom-layout-scrolledheader div + nav,body.custom-layout-scrolledheader di
 body.custom-layout-smallfooter .footer-top {display: none;}
 
 /* link styling */
-a.current {
+a.current-page {
     filter: opacity(50%);
     pointer-events: none; 
     cursor: default; 
@@ -218,7 +218,7 @@ a.current {
     text-decoration: none; 
 }
 
-a.current:hover {    
+a.current-page:hover {    
   text-decoration: none;
   color: inherit;
 }
@@ -262,7 +262,7 @@ span.icon span.external-link::after {
         document.querySelectorAll('a[href]').forEach(link => {
           if (link.href === window.location.href) {
             console.log('[' + link.href + '] vs [' + window.location.href + ']');   
-            link.classList.add('currentX');
+            link.classList.add('current-page');
             console.log('classList is now:', link.classList.value);      
           }
         });
@@ -275,8 +275,8 @@ span.icon span.external-link::after {
             const id = entry.target.getAttribute('id');
             const link = document.querySelector(`a[href="#${id}"]`);
             if (entry.isIntersecting) {
-              document.querySelectorAll('a.current').forEach(el => el.classList.remove('current'));
-              if (link) link.classList.add('current');
+              document.querySelectorAll('a.current-section').forEach(el => el.classList.remove('current-section'));
+              if (link) link.classList.add('current-section');
             }
           });
         }, { threshold: 0.6 });
