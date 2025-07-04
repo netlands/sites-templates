@@ -3,10 +3,13 @@
   .hidden {
     display: none;
   }
-  body:not(.scrolled) img.logodark {
+
+  /* body:not(.scrolled) img.logodark { */
+  body.custom-layout-logodark:not(.scrolled) img[aria-label="Site home"]  {
     filter: brightness(0) saturate(100%) invert(57%) sepia(5%) saturate(305%) hue-rotate(169deg) brightness(91%) contrast(84%);
   }
 
+  
   @media (max-width: 767px) {
     #footer-left {
       display: none;
