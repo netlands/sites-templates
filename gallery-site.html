@@ -84,7 +84,25 @@
       padding: 6px 10px;
       font-size: 16px;
     }
+        
+.search-form {
+  display: flex;
+  gap: 8px; /* spacing between input and button */
+}
 
+.search-form input[type="text"] {
+  flex-grow: 1;
+  padding: 6px 10px;
+  font-size: 16px;
+  min-width: 0; /* prevents flex overflow */
+}
+
+.search-form input[type="submit"] {
+  padding: 6px 14px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+        
     .normal-order {
       flex-direction: row;
     }
@@ -128,12 +146,12 @@ window.addEventListener('scroll', () => {
       <a href="#">Contact</a>
     </div>
     
-    <div class="search-section">
-        <form action='/search' method='get'>
-          <input id="search-field" name='q' placeholder='Search the gallery...' type='text'/>
-          <input id="search-button" type='submit' value='Search'/>
-        </form>
-    </div>
+        <div class="search-section">
+          <form action='/search' method='get' class="search-form">
+            <input id="search-field" name='q' placeholder='Search the gallery...' type='text'/>
+            <input id="search-button" type='submit' value='Search'/>
+          </form>
+        </div>
           
     <div class="logo-section">
       <!-- Inline SVG or img tag -->
