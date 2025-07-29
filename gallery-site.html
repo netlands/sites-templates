@@ -44,6 +44,17 @@
       border-top: 1px solid #ddd;
     }
 
+.footer-content {
+  max-width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+        
     .footer-left,
     .footer-right {
       flex-shrink: 0;
@@ -134,12 +145,14 @@ window.addEventListener('scroll', () => {
 </header>
 
 <footer id="site-footer">
-  <div class="footer-left">
-    &copy; 2025 <span class="sitename">netlands</span>. All rights reserved.
-  </div>
-  <div class="footer-right">
-    Built with magic in Tokyo
-  </div>
+  <div class="footer-content">
+          <div class="footer-left">
+            &copy; 2025 <span class="sitename">netlands</span>. All rights reserved.
+          </div>
+          <div class="footer-right">
+            Built with magic in Tokyo
+          </div>
+  </div>        
 </footer>
 </body>
 </html>
