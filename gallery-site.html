@@ -118,7 +118,10 @@ window.addEventListener('scroll', () => {
     </div>
     
     <div class="search-section">
-      <input type="text" placeholder="Search..." />
+        <form action='/search' method='get'>
+          <input id="search-field" name='q' placeholder='Search the gallery...' type='text'/>
+          <input id="search-button" type='submit' value='Search'/>
+        </form>
     </div>
           
     <div class="logo-section">
