@@ -87,23 +87,27 @@
         
 .search-form {
   display: flex;
-  gap: 8px; /* spacing between input and button */
+  align-items: center;  /* Vertically align input + button */
+  gap: 8px;
+  width: 100%;
 }
 
 .search-form input[type="text"] {
   flex-grow: 1;
   padding: 6px 10px;
   font-size: 16px;
-  min-width: 0; /* prevents flex overflow */
+  min-height: 32px; /* Aligns with button height */
 }
 
 .search-form input[type="submit"] {
   padding: 6px 12px;
   font-size: 16px;
   white-space: nowrap;
-  width: auto;
   flex-shrink: 0;
+  height: auto;
 }
+
+
       
     .normal-order {
       flex-direction: row;
