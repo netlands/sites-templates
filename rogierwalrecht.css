@@ -6,7 +6,7 @@ body {
 }
 
 html.main-page div.logo-section {
-    height: 50px;
+    height: 75px;
     filter: invert(1);
 }
 html.main-page header {
