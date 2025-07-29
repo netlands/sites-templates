@@ -89,16 +89,13 @@
 
 </style>
 <script>
-  const header = document.querySelector('#site-header');
   const navContainer = document.querySelector('.header-container');
 
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 10) {
-      header.classList.add('scrolled');
-    } else {
-      header.classList.remove('scrolled');
-    }
-  });
+window.addEventListener('scroll', () => {
+  const isScrolled = window.scrollY > 10;
+  document.body.classList.toggle('scrolled', isScrolled);
+});
+
 
   // Toggle layout order (example switch)
   function toggleHeaderOrder() {
