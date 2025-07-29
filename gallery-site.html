@@ -1,0 +1,134 @@
+<html>
+<head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&display=swap" rel="stylesheet">`
+</head>
+
+<body>
+<style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    #site-header {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      transition: background-color 0.3s ease;
+    }
+
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background-color: transparent;
+      transition: background-color 0.3s ease;
+    }
+
+    .nav-section,
+    .logo-section {
+      flex-shrink: 0;
+    }
+
+    .search-section {
+      flex-grow: 1;
+      padding: 0 10px;
+    }
+
+    .search-section input {
+      width: 100%;
+      padding: 6px 10px;
+      font-size: 16px;
+    }
+
+    .normal-order {
+      flex-direction: row;
+    }
+
+    .reversed-order {
+      flex-direction: row-reverse;
+    }
+
+    /* When scrolled */
+    .scrolled {
+      background-color: white;
+    }
+
+    .site-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      background-color: #f8f8f8;
+      font-size: 14px;
+      color: #444;
+      border-top: 1px solid #ddd;
+    }
+
+    .footer-left,
+    .footer-right {
+      flex-shrink: 0;
+    }
+
+    /* Optional: make sure it sticks nicely below content */
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    main {
+      flex: 1;
+    }
+</style>
+<script>
+  const header = document.querySelector('#site-header');
+  const navContainer = document.querySelector('.header-container');
+
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 10) {
+      header.classList.add('scrolled');
+    } else {
+      header.classList.remove('scrolled');
+    }
+  });
+
+  // Toggle layout order (example switch)
+  function toggleHeaderOrder() {
+    navContainer.classList.toggle('normal-order');
+    navContainer.classList.toggle('reversed-order');
+  }
+</script>
+
+<header id="site-header">
+  <nav class="header-container normal-order">
+    <div class="nav-section">
+      <a href="#">Home</a>
+      <a href="#">Projects</a>
+      <a href="#">Contact</a>
+    </div>
+    <div class="search-section">
+      <input type="text" placeholder="Search..." />
+    </div>
+    <div class="logo-section">
+      <!-- Inline SVG or img tag -->
+      <svg viewBox="0 0 100 40" width="80" height="40">
+        <text x="0" y="30" font-size="30" font-family="sans-serif">LOGO</text>
+      </svg>
+    </div>
+  </nav>
+</header>
+
+<footer class="site-footer">
+  <div class="footer-left">
+    &copy; 2025 netlands. All rights reserved.
+  </div>
+  <div class="footer-right">
+    Built with modular pixels & quiet pride.
+  </div>
+</footer>
+</body>
+</html>
