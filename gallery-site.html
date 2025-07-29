@@ -11,6 +11,12 @@
     height: 100%;
   }
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+
+        
   body {
     margin: 0;      
     display: flex;
@@ -79,34 +85,35 @@
       padding: 0 10px;
     }
 
-    .search-section input {
-      width: 100%;
-      padding: 6px 10px;
-      font-size: 16px;
-    }
-        
+      
 .search-form {
   display: flex;
-  align-items: center;       /* Align input + button vertically */
-  justify-content: flex-end; /* Optional, if you want them pushed right */
+  align-items: center;
   gap: 8px;
-  height: 100%;              /* Match height of header-container */
+  width: 100%;
+  max-width: 400px;             /* 🔒 Avoid overflow into nav or logo */
+  margin: 0 auto;               /* Optional: center within available space */
 }
 
 .search-form input[type="text"] {
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-width: 0;                 /* ✅ Prevent weird flex overflow */
   padding: 6px 10px;
   font-size: 16px;
   height: 36px;
-  flex: 1 1 auto;            /* Let it grow but not dominate */
-  max-width: 300px;          /* Prevent it from stretching too far */
   box-sizing: border-box;
 }
 
 .search-form input[type="submit"] {
+  flex-shrink: 0;
+  flex-grow: 0;
   padding: 6px 12px;
   font-size: 16px;
-  height: 36px;              /* Match input height for vertical harmony */
-  flex: 0 0 auto;
+  height: 36px;
+  white-space: nowrap;
+  width: auto;
+  box-sizing: border-box;
   cursor: pointer;
 }
     
