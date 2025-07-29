@@ -5,7 +5,7 @@ body {
     color: red;
 }
 
-html.main-page logo-section {
+html.main-page div.logo-section {
     height: 50px;
     filter: invert(1);
 }
@@ -14,7 +14,7 @@ html.main-page header {
     to bottom,
     rgba(0, 0, 0, 1),  /* Top: semi-transparent white */
     rgba(0, 0, 0, 0)     /* Bottom: fully transparent */
-  );   
+  );
 }
 
 html.main-page h3.post-title, html.main-page div.blog-pager {
