@@ -21,8 +21,17 @@ html.main-page h3.post-title, html.main-page div.blog-pager {
     display: none;
 }
 
+.footer-left {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 0.4em; /* optional: space between icon and text */
+}
+
 .placeholder.copyright-symbol {
-  font-size: 0; /* hides original content */
+  font-size: 0; /* hides the &copy; visually */
+  display: inline-block;
+  vertical-align: middle;
   position: relative;
 }
 
