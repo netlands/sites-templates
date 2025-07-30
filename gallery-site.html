@@ -267,6 +267,21 @@ html.main-page .search-section {
       e.preventDefault();
       document.body.classList.toggle("show-search-box");
     });
+
+
+  const links = document.querySelectorAll('.footer-right .container a');
+  let currentIndex = 0;
+
+  setInterval(() => {
+    // Hide all
+    links.forEach(link => link.classList.remove('active'));
+
+    // Show next
+    currentIndex = (currentIndex + 1) % links.length;
+    links[currentIndex].classList.add('active');
+  }, 12000); // 12 seconds per cycle
+
+          
   });
 
        
@@ -281,23 +296,7 @@ window.addEventListener('scroll', () => {
     document.body.classList.toggle('normal-order');
     document.body.classList.toggle('reversed-order');
   }
-
-  const links = document.querySelectorAll('.footer-right .container a');
-  let currentIndex = 0;
-
-  setInterval(() => {
-    // Hide all
-    links.forEach(link => link.classList.remove('active'));
-
-    // Show next
-    currentIndex = (currentIndex + 1) % links.length;
-    links[currentIndex].classList.add('active');
-  }, 12000); // 12 seconds per cycle
-
-
-
-
-        
+      
 </script>
 
 <header id="site-header">
