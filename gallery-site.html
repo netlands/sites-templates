@@ -222,6 +222,20 @@ body.show-search-box .search-toggle-link {
   display: none;
 }
 
+/* When html has .main-page, show and animate */
+html.main-page .search-section {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  animation: fadeScaleIn 400ms ease-out;
+  z-index: 999;
+  background: white;
+  padding: 1em;
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
 
 
         
