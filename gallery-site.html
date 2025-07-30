@@ -187,7 +187,7 @@ body.show-search-box .search-toggle-link {
       flex-direction: row;
     }
 
-    body..reversed-order {
+    body.reversed-order {
       flex-direction: row-reverse;
     }
 
@@ -203,8 +203,17 @@ body.show-search-box .search-toggle-link {
 
 </style>
 <script>
-  const navContainer = document.querySelector('.header-container');
 
+  document.addEventListener("DOMContentLoaded", function () {
+    const toggle = document.getElementById("search-toggle");
+    
+    toggle.addEventListener("click", function (e) {
+      e.preventDefault();
+      document.body.classList.toggle("show-search-box");
+    });
+  });
+
+       
 window.addEventListener('scroll', () => {
   const isScrolled = window.scrollY > 10;
   document.body.classList.toggle('scrolled', isScrolled);
@@ -213,8 +222,8 @@ window.addEventListener('scroll', () => {
 
   // Toggle layout order (example switch)
   function toggleHeaderOrder() {
-    navContainer.classList.toggle('normal-order');
-    navContainer.classList.toggle('reversed-order');
+    document.body.classList.toggle('normal-order');
+    document.body.classList.toggle('reversed-order');
   }
 </script>
 
