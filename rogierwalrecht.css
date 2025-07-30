@@ -20,3 +20,19 @@ html.main-page header {
 html.main-page h3.post-title, html.main-page div.blog-pager {
     display: none;
 }
+
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+.placeholder.copyright-symbol {
+  font-size: 0; /* hides the original content but keeps element for styling */
+  position: relative;
+}
+
+.placeholder.copyright-symbol::before {
+  content: "palette";
+  font-family: 'Material Icons';
+  font-size: 18px; /* match your footer text size */
+  vertical-align: middle;
+  display: inline-block;
+  color: inherit; /* matches surrounding text color */
+}
