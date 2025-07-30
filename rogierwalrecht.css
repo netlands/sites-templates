@@ -12,8 +12,9 @@ html.main-page div.logo-section {
 html.main-page header {
   background: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 1),  /* Top: semi-transparent white */
-    rgba(0, 0, 0, 0)     /* Bottom: fully transparent */
+    rgba(0, 0, 0, 1) 0%,     /* solid black starts at 0% */
+    rgba(0, 0, 0, 0.6) 20%,  /* still quite dark at 20% */
+    rgba(0, 0, 0, 0) 60%     /* fully transparent by 60% */
   );
 }
 html.main-page h3.post-title, html.main-page div.blog-pager {
