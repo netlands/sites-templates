@@ -13,8 +13,8 @@ html.main-page header {
   background: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 1) 0%,     /* solid black starts at 0% */
-    rgba(0, 0, 0, 0.6) 40%,  /* still quite dark at 20% */
-    rgba(0, 0, 0, 0) 80%     /* fully transparent by 60% */
+    rgba(0, 0, 0, 0.6) 40%,  /* still quite dark */
+    rgba(0, 0, 0, 0) 80%     /* fully transparent */
   );
 }
 html.main-page h3.post-title, html.main-page div.blog-pager {
