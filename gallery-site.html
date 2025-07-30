@@ -66,7 +66,28 @@
     .footer-right {
       flex-shrink: 0;
     }
-        
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4em; /* spacing between icon and text */
+}
+
+.magic-icon svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+  font-size: 18px; /* scales with text if you prefer using em */
+  display: block;
+  fill: currentColor; /* uses inherited text color */
+}
+
+.magic-text {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+       
     .header-container {
       display: flex;
       justify-content: space-between;
