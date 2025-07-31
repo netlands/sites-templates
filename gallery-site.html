@@ -254,6 +254,58 @@ html.main-page .search-section {
     }  
 
 
+/* Base styles */
+.collapsible-menu {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Hamburger and search toggle container */
+.menu-toggle-container {
+  display: none;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Responsive styles */
+@media (max-width: 866px) {
+  .collapsible-menu {
+    display: none;
+    flex-direction: column;
+    background: #fff;
+    position: absolute;
+    top: 60px; /* adjust based on header height */
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  .collapsible-menu.open {
+    display: flex;
+  }
+
+  .menu-toggle-container {
+    display: flex;
+  }
+
+  .nav-section {
+    order: 2;
+  }
+
+  .search-toggle-link {
+    order: 1;
+  }
+}
+
+
+
+
+
+
+
+        
+
 / * work */
 html.post-page img {
   box-shadow:
@@ -300,12 +352,28 @@ window.addEventListener('scroll', () => {
     document.body.classList.toggle('normal-order');
     document.body.classList.toggle('reversed-order');
   }
-      
+
+  document.getElementById('menu-toggle').addEventListener('click', function () {
+    document.querySelector('.collapsible-menu').classList.toggle('open');
+  });
+
+
+        
 </script>
 
 <header id="site-header">
   <nav class="header-container normal-order">
-    <div class="nav-section">
+
+    <div class="menu-toggle-container">
+      <button id="menu-toggle" aria-label="Toggle menu">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+      <a href="#" id="search-toggle" class="search-toggle-link">
+        <span class="material-symbols-outlined">search</span> Search
+      </a>
+    </div>
+          
+    <div class="nav-section collapsible-menu">
       <a href="/p/about.html" class="top-menu-item">Story</a>
       <a href="/p/portfolio.html" class="top-menu-item">Work</a>
       <a href="/p/news.html" class="top-menu-item">Latest</a>
@@ -314,8 +382,8 @@ window.addEventListener('scroll', () => {
           <span class="material-symbols-outlined">search</span> Search
       </a>
     </div>
-    
-        <div class="search-section">
+
+          <div class="search-section">
           <form action='/search' method='get' class="search-form">
             <input id="search-field" name='q' placeholder='Search the gallery...' type='text'/>
             <input id="search-button" type='submit' value='Search'/>
