@@ -324,6 +324,15 @@ html.post-page img {
       document.body.classList.toggle("show-search-box");
     });
 
+    const menuToggle = document.getElementById('menu-toggle');
+    const collapsibleMenu = document.querySelector('.collapsible-menu');
+
+    if (menuToggle && collapsibleMenu) {
+      menuToggle.addEventListener('click', function () {
+        collapsibleMenu.classList.toggle('open');
+      });
+    }
+
     const magic = document.querySelector('.made-with-magic');
     const blogger = document.querySelector('.powered-by-blogger');
     let showingMagic = true;
@@ -352,12 +361,6 @@ window.addEventListener('scroll', () => {
     document.body.classList.toggle('normal-order');
     document.body.classList.toggle('reversed-order');
   }
-
-  document.getElementById('menu-toggle').addEventListener('click', function () {
-    document.querySelector('.collapsible-menu').classList.toggle('open');
-  });
-
-
         
 </script>
 
