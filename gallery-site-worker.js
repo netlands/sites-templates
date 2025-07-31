@@ -1,4 +1,4 @@
-import { test, querySelector, querySelectorAll } from './htmlparser.js'
+import { test, querySelector, querySelectorAll, getAttribute } from './htmlparser.js'
 
 let testHtml = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="A small, structured HTML file for testing purposes."><title>Test HTML Structure</title><link rel="stylesheet" href="styles.css"></head><body><header><h1 class="title">Welcome to My Test Page</h1><h2 id="sub-heading">Subheading: Testing HTML Structure</h2></header><main><div><h2 id="part1">Part 1</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div><div><h2 id="part2">Part 2</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div></main><footer><h2 id="footer-heading">Footer Section</h2><p class="footer-text">Thank you for visiting this test page.</p></footer></body></html>';
 
@@ -37,29 +37,47 @@ export default {
       pageClass = 'post-page';
       /* here we parse the post contents */
 
-/*const synonyms = {
-  title: ['title', 'name'],
+const synonyms = {
+  title: ['name', 'title', 'naam'],
+  artist: ['creator', 'arties'],
   medium: ['medium'],
-  date: ['date', 'year', 'period']
+  date: ['datum'],
+  year: ['jaar'],
+  period: ['periode'],
+  series: ['serie']
 };
 
 const renderOrder = Object.keys(synonyms);
 const prettify = s => s.charAt(0).toUpperCase() + s.slice(1);
 
 // 1️⃣ Extract post-body <div> content
-const postBodyMatch = html.match(/<div class="post-body">([\s\S]*?)<\/div>/i);
-const bodyHTML = postBodyMatch?.[1] || '';
+const bodyHTML = await querySelector(html, 'div.post-body', { returnInnerHtml: true });
 
-console.log(bodyHTML);
 // 2️⃣ Parse individual field lines
-const lineRegex = /<div[^>]*>(.*?)<\/div>/gi;
 let parsed = {};
 let parsedRawKeys = {};
 let leftoverLines = [];
 
-for (const match of bodyHTML.matchAll(lineRegex)) {
-  const line = match[1].trim();
+// Step 1: Normalize HTML into clean lines
+let cleanHTML = bodyHTML
+  .replace(/\r\n|\r/g, '\n')                // Normalize CRLF to LF
+  .replace(/<div[^>]*>/gi, '\n')            // Line break on opening <div>
+  .replace(/<\/div>/gi, '\n')               // Line break on closing </div>
+  .replace(/<br\s*\/?>/gi, '\n')            // Line break on <br>
+  .replace(/&nbsp;(?=\s*[:=])/gi, ' ')      // Replace nbsp before : or = with a real space
+  .replace(/(?<=[:=]\s*)&nbsp;/gi, '')      // Remove nbsp after :
+  .replace(/^(&nbsp;)+|(&nbsp;)+$/gi, '')   // Trim leading/trailing nbsp
+  .replace(/<[^>]+>/g, '')                  // Strip all other tags
+  .replace(/[ \t]+/g, ' ')                  // Normalize spacing
+  .replace(/\s{2,}/g, ' ');                 // Collapse excess whitespace to single spaces
 
+const lines = cleanHTML
+  .split('\n')
+  .map(line => line.trim())
+  .filter(Boolean); // Remove empty lines
+
+// Step 2: Parse structured lines using synonyms
+for (const line of lines) {
   let matched = false;
   for (const [canonicalKey, variants] of Object.entries(synonyms)) {
     for (const variant of variants) {
@@ -78,22 +96,17 @@ for (const match of bodyHTML.matchAll(lineRegex)) {
 }
 
 // 3️⃣ Extract labels
-let labels = [];
-const labelRegex = /<span class="post-labels">([\s\S]*?)<\/span>/i;
-const labelBlock = html.match(labelRegex)?.[1] || '';
-for (const match of labelBlock.matchAll(/<a[^>]*>(.*?)<\/a>/gi)) {
-  const label = match[1].trim();
-  if (label) labels.push(label);
-}
+let labels = await querySelectorAll(html, "span.post-labels a", {
+  returnInnerHtml: true,
+  stripTags: true
+});
 
 // 4️⃣ Extract title
-const titleMatch = html.match(/<h3 class="post-title">(.*?)<\/h3>/i);
-const objectTitle = titleMatch?.[1].trim() || '';
+const objectTitle = await querySelector(html, "div.post h3.post-title",{returnInnerHtml: true, stripTags: true});
 
 // 5️⃣ Extract image & link
-const anchorMatch = html.match(/<div class="separator">\s*<a[^>]*href="([^"]+)"[^>]*>\s*<img[^>]*src="([^"]+)"[^>]*>/i);
-const imageLink = anchorMatch?.[1] || '';
-const imageUrl = anchorMatch?.[2] || '';
+const imageLink = await getAttribute(html,"div.post-body div.separator a", "href");
+const imageUrl = await getAttribute(html,"div.post-body div.separator a img", "src");
 
 // 6️⃣ Render HTML
 let cardHTML = '<div class="card">\n';
@@ -114,12 +127,12 @@ Object.entries(parsed).forEach(([key, value]) => {
 
 cardHTML += '</div>\n';
 
-let notesHTML = '<div class="notes">\n';
+let notesHTML = '<div class="notes">\n';/*
 for (const line of leftoverLines) {
   notesHTML += `  <p>${line}</p>\n`;
 }
 notesHTML += '</div>\n';
-
+*/ 
 let labelHTML = '';
 if (labels.length > 0) {
   labelHTML += `<div class="object-labels">\n`;
@@ -144,34 +157,9 @@ if (objectTitle) {
   titleHTML = `<h3 class="object-title">${objectTitle}</h3>\n`;
 }
 
-let objectHTML = titleHTML + imageHTML + cardHTML + notesHTML + labelHTML;   */
+let objectHTML = titleHTML + imageHTML + cardHTML + notesHTML + labelHTML;   
 
-let testHtml = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Hello World</title>
-  </head>
-  <body><h3>Hello World!</h3><p>Some more text</p>
-  <ul id="all-tags" hidden="">
-  <li>landscape</li>
-  <li>mountain</li>
-  <li>portrait</li>
-  <li>sample</li>
-</ul></body>
-</html>
-`;
-
-let titleText = "";
-const labels = await querySelectorAll(html, 'ul#all-tags li');
-const resultString = labels.join("");
- titleText = await querySelector(html, 'div.post img');
-console.log("result:" + titleText);
-let testString = test();
-let objectHTML = testString + "<br/>==========================================<br/>";
-objectHTML += titleText + "<br/><br/>" + resultString 
-// Get all paragraph snippets
-//const allParas = await querySelectorAll(html, 'article p')
+objectHTML = objectHTML + "<br/>==========================================<br/><br/>" + bodyHTML + "<br/>==========================================<br/><br/>" + cleanHTML + "<br/>==========================================<br/><br/>";
 html = insertBeforePost(html, objectHTML);
 
 
@@ -352,6 +340,11 @@ html = html
           if (logoExists) {
             el.setInnerContent(`<img src="${LOGO_URL}" alt="Logo">`, { html: true });
           }
+        }
+      })
+      .on('div.post', {
+        element(el) {
+          el.setAttribute('style', 'display:none'); // el.remove();
         }
       });
     
