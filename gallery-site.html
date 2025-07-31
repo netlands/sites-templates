@@ -298,6 +298,13 @@ html.main-page .search-section {
   }
 }
 
+.collapsible-menu {
+  display: none;
+}
+.collapsible-menu.open {
+  display: block;
+}
+
 
 
 
@@ -324,14 +331,43 @@ html.post-page img {
       document.body.classList.toggle("show-search-box");
     });
 
-    const menuToggle = document.getElementById('menu-toggle');
+    const menuToggleBtn = document.getElementById('menu-toggle');
+    const menuIcon = menuToggleBtn.querySelector('.material-symbols-outlined');
     const collapsibleMenu = document.querySelector('.collapsible-menu');
+    const topSearchToggle = document.querySelector('.menu-toggle-container #search-toggle');
 
-    if (menuToggle && collapsibleMenu) {
-      menuToggle.addEventListener('click', function () {
-        collapsibleMenu.classList.toggle('open');
-      });
+    function openMenu() {
+      collapsibleMenu.classList.add('open');
+      menuIcon.textContent = 'close';
+      if (topSearchToggle) topSearchToggle.style.display = 'none';
     }
+
+    function closeMenu() {
+      collapsibleMenu.classList.remove('open');
+      menuIcon.textContent = 'menu';
+      if (topSearchToggle) topSearchToggle.style.display = '';
+    }
+
+    menuToggleBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (collapsibleMenu.classList.contains('open')) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (
+        collapsibleMenu.classList.contains('open') &&
+        !collapsibleMenu.contains(e.target) &&
+        !menuToggleBtn.contains(e.target)
+      ) {
+        closeMenu();
+      }
+    });
+
+
 
     const magic = document.querySelector('.made-with-magic');
     const blogger = document.querySelector('.powered-by-blogger');
