@@ -272,12 +272,13 @@ html.main-page .search-section {
   .collapsible-menu {
     display: none;
     flex-direction: column;
-    background: transparent;
+    background: #fff;
     position: absolute;
     top: 60px; /* adjust based on header height */
     left: 0;
     right: 0;
     padding: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);      
   }
 
   .collapsible-menu.open {
@@ -297,7 +298,18 @@ html.main-page .search-section {
   }
 }
 
-      
+button.icon-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: inherit; /* optional: inherit icon size from parent */
+  color: inherit;     /* optional: inherit text/icon color */
+}      
 
 / * work */
 html.post-page img {
@@ -390,7 +402,7 @@ window.addEventListener('scroll', () => {
   <nav class="header-container normal-order">
 
     <div class="menu-toggle-container">
-      <button id="menu-toggle" aria-label="Toggle menu">
+      <button class="icon-button" id="menu-toggle" aria-label="Toggle menu">
         <span class="material-symbols-outlined">menu</span>
       </button>
       <a href="#" id="search-toggle" class="search-toggle-link">
