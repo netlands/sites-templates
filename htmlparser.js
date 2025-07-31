@@ -1,20 +1,20 @@
 // htmlparser.js
 
 /* available functions: 
- querySelector(html, selector, options = {})
- querySelectorAll(html, selector, options = {})
- getElementById(html, id, options = {})
- getElementsByClassName(html, className, options = {})
- getElementsByTagName(html, tagName, options = {})
- getElementsByName(html, name, options = {}) 
- getAttribute(html, selector, attributeName)
+ querySelector(html, selector, options = {})
+ querySelectorAll(html, selector, options = {})
+ getElementById(html, id, options = {})
+ getElementsByClassName(html, className, options = {})
+ getElementsByTagName(html, tagName, options = {})
+ getElementsByName(html, name, options = {}) 
+ getAttribute(html, selector, attributeName)
 
 Example use:
- import { querySelector, querySelectorAll } from './htmlparser.js'
+ import { querySelector, querySelectorAll } from './htmlparser.js'
 
- default: const outerHtmlContent = await querySelector(html, 'div'); // No options, or { returnInnerHtml: false }
- return innerHTML: const innerHtmlContent = await querySelector(html, 'div', { returnInnerHtml: true });
- strip all tags: const plainTextContent = await querySelector(html, 'div', { returnInnerHtml: true, stripTags: true });
+ default: const outerHtmlContent = await querySelector(html, 'div'); // No options, or { returnInnerHtml: false }
+ return innerHTML: const innerHtmlContent = await querySelector(html, 'div', { returnInnerHtml: true });
+ strip all tags: const plainTextContent = await querySelector(html, 'div', { returnInnerHtml: true, stripTags: true });
 */
 
 const debug = false;
@@ -24,9 +24,9 @@ if (!debug) {
 }
 
 /**
- * A simple test function to verify imports.
- * @returns {string} A greeting string.
- */
+ * A simple test function to verify imports.
+ * @returns {string} A greeting string.
+ */
 export function test() {
   return "Hello World!";
 }
@@ -45,34 +45,33 @@ const VOID_ELEMENTS = new Set([
 function _openTag(el) {
   let tag = `<${el.tagName}`;
   for (const [name, value] of el.attributes) {
-    tag += ` ${name}="${value}"`;
+    // Ensure attribute values are properly escaped if they contain quotes
+    const escapedValue = value.replace(/"/g, '&quot;');
+    tag += ` ${name}="${escapedValue}"`;
   }
   return tag + '>';
 }
 
 /**
- * Collector class that now works with a wildcard handler to capture full inner HTML.
+ * Collector class that captures the full outer HTML of matched elements.
  * It acts as a state machine, toggled by the specific selector handler.
  */
 class Collector {
   /**
    * @param {object} options - Configuration options for the collector.
-   * @param {boolean} [options.returnInnerHtml=false] - If true, returns innerHTML instead of outerHTML.
-   * @param {boolean} [options.stripTags=false] - If true, strips HTML tags from the content. Only applies if returnInnerHtml is true.
    * @param {string} [options.attributeName=null] - If provided, the collector will extract this attribute's value.
    */
   constructor(options = {}) {
     this.results = [];
     this.options = {
-      returnInnerHtml: options.returnInnerHtml === true,
-      stripTags: options.stripTags === true,
       attributeName: options.attributeName || null
     };
 
     // State machine properties for capturing full HTML content
     this.isCapturing = false;
     this.captureBuffer = '';
-    
+    this.currentTagName = ''; // Store the tag name of the element currently being captured
+
     console.log("Collector: Constructor called with options:", this.options);
   }
 
@@ -85,63 +84,47 @@ class Collector {
     if (this.options.attributeName) {
       const attributeValue = el.getAttribute(this.options.attributeName);
       console.log(`Collector: Found attribute '${this.options.attributeName}' with value: ${attributeValue}`);
+      // Push the attribute value directly, or an empty string if null
       this.results.push(attributeValue !== null ? attributeValue : "");
       return;
     }
 
     // If we are already capturing, it means we have a nested match.
-    // The current logic handles this by starting a new capture.
+    // We reset the buffer for a new capture.
     console.log("Collector: Main selector matched:", el.tagName);
     this.isCapturing = true;
     this.captureBuffer = ''; // Reset buffer for each new match.
+    this.currentTagName = el.tagName; // Store the tag name for later use
 
-    // FIX: Capture tagName before the onEndTag callback to avoid using an invalid token.
-    const tagName = el.tagName;
+    // Start capturing the opening tag of the matched element
+    this.captureBuffer += _openTag(el);
 
     // The wildcard handler will build the content. We just need to know when the element ends.
     el.onEndTag(() => {
-      console.log("Collector: Main selector ended:", tagName);
+      console.log("Collector: Main selector ended:", this.currentTagName);
+      // Append the closing tag for non-void elements
+      if (!VOID_ELEMENTS.has(this.currentTagName.toLowerCase())) {
+        this.captureBuffer += `</${this.currentTagName}>`;
+      }
+      
       // The captureBuffer should now contain the full outerHTML of the element.
-      let finalContent = this.captureBuffer;
-
-      // --- Apply options based on flags ---
-      // 1. If returnInnerHtml is true, extract inner HTML
-      if (this.options.returnInnerHtml) {
-        // Find the first occurrence of '>' after the opening tag
-        const openTagEndIndex = finalContent.indexOf('>');
-        // Find the last occurrence of '</' which marks the start of the closing tag
-        const closeTagStartIndex = finalContent.lastIndexOf(`</${tagName}>`);
-
-        if (openTagEndIndex !== -1 && closeTagStartIndex !== -1 && openTagEndIndex < closeTagStartIndex) {
-          finalContent = finalContent.substring(openTagEndIndex + 1, closeTagStartIndex);
-        } else {
-          // This handles void elements or elements with no inner content.
-          finalContent = "";
-        }
-      }
-
-      // 2. If stripTags is true (and applies to innerHTML if that was selected)
-      if (this.options.stripTags && this.options.returnInnerHtml) {
-        finalContent = finalContent.replace(/<[^>]*>/g, '');
-      }
-      // --- End Apply options ---
-
-      this.results.push(finalContent);
-      console.log("Collector: Finalized content:", JSON.stringify(finalContent));
+      this.results.push(this.captureBuffer);
+      console.log("Collector: Finalized content (raw outerHTML):", JSON.stringify(this.captureBuffer));
       
       this.isCapturing = false; // Turn off capture
       this.captureBuffer = ''; // Clean up
+      this.currentTagName = ''; // Clear current tag name
     });
   }
 }
 
 /**
- * Internal helper: Runs HTMLRewriter with a dual-handler setup.
- * @param {string} html The HTML string to parse.
- * @param {string} selector The CSS selector for elements to collect.
- * @param {object} [options={}] - Configuration options for the collector.
- * @returns {Promise<Collector>} A promise that resolves with the Collector instance.
- */
+ * Internal helper: Runs HTMLRewriter with a dual-handler setup.
+ * @param {string} html The HTML string to parse.
+ * @param {string} selector The CSS selector for elements to collect.
+ * @param {object} [options={}] - Configuration options for the collector.
+ * @returns {Promise<Collector>} A promise that resolves with the Collector instance.
+ */
 async function _runRewriter(html, selector, options = {}) {
   console.log("_runRewriter: Starting for selector:", selector, "with options:", options);
   const collector = new Collector(options);
@@ -164,15 +147,15 @@ async function _runRewriter(html, selector, options = {}) {
   const contentHandler = {
     element(el) {
       if (collector.isCapturing) {
-        // FIX: Capture tagName before the onEndTag callback to avoid using an invalid token.
-        const tagName = el.tagName;
-        console.log("ContentHandler: capturing element", tagName);
+        // Capture the tagName of the nested element immediately
+        const nestedTagName = el.tagName; 
+        // Append the opening tag of nested elements
         collector.captureBuffer += _openTag(el);
 
-        if (!VOID_ELEMENTS.has(tagName.toLowerCase())) {
+        // If it's not a void element, ensure its closing tag is captured
+        if (!VOID_ELEMENTS.has(nestedTagName.toLowerCase())) { // Use nestedTagName here
           el.onEndTag(() => {
-            // Use the captured `tagName` variable which is a valid string.
-            collector.captureBuffer += `</${tagName}>`;
+            collector.captureBuffer += `</${nestedTagName}>`; // Use nestedTagName here
           });
         }
       }
@@ -202,8 +185,8 @@ async function _runRewriter(html, selector, options = {}) {
 
   // Apply the dual HTMLRewriter transformation for full content capture
   const rewriterResponse = new HTMLRewriter()
-    .on('*', contentHandler) // The general content handler
-    .on(selector, collector) // The specific handler to toggle state
+    .on('*', contentHandler) // The general content handler for all elements/text/comments
+    .on(selector, collector) // The specific handler to toggle state and mark the start/end of the main element
     .transform(responseStream);
 
   console.log("_runRewriter: Awaiting rewriterResponse.text() to drain the stream.");
@@ -214,14 +197,51 @@ async function _runRewriter(html, selector, options = {}) {
 }
 
 /**
- * Returns the content of the first node matching `selector`.
- * @param {string} html The HTML string to parse.
- * @param {string} selector The CSS selector for the desired element.
- * @param {object} [options={}] - Configuration options.
- * @param {boolean} [options.returnInnerHtml=false] - If true, returns innerHTML instead of outerHTML.
- * @param {boolean} [options.stripTags=false] - If true, strips HTML tags from the content. Only applies if returnInnerHtml is true.
- * @returns {Promise<string|null>} The content string of the first match, or null if not found.
- */
+ * Internal helper: Processes the raw captured HTML content based on options.
+ * @param {string} content The raw HTML string (outer HTML of the matched element).
+ * @param {object} options - Configuration options.
+ * @param {boolean} [options.returnInnerHtml=false] - If true, returns innerHTML instead of outerHTML.
+ * @param {boolean} [options.stripTags=false] - If true, strips HTML tags from the content. Only applies if returnInnerHtml is true.
+ * @returns {string} The processed content string.
+ */
+function _processContent(content, options) {
+  let processedContent = content;
+
+  // 1. If returnInnerHtml is true, remove the outermost tag pair
+  if (options.returnInnerHtml) {
+    // Regex to match the opening tag (non-greedy) and then anything up to the closing tag
+    // This assumes `content` is the outerHTML of a single element.
+    const match = processedContent.match(/^<([a-zA-Z0-9]+)([^>]*)>([\s\S]*?)<\/\1>$/i);
+    if (match) {
+      // Group 3 contains the inner HTML
+      processedContent = match[3];
+    } else {
+      // Handle void elements or elements without explicit closing tags (e.g., <br>, <img>)
+      // If it's a void element, innerHTML is empty.
+      // If it's a self-closing XML-style tag (e.g., <div/>), innerHTML is empty.
+      // For simplicity, if no opening/closing tag pair is found, assume it's a void element or has no inner content.
+      processedContent = "";
+    }
+  }
+
+  // 2. If stripTags is true (and applies to innerHTML if that was selected)
+  if (options.stripTags && options.returnInnerHtml) {
+    // This regex removes all HTML tags from the content
+    processedContent = processedContent.replace(/<[^>]*>/g, '');
+  }
+
+  return processedContent;
+}
+
+/**
+ * Returns the content of the first node matching `selector`.
+ * @param {string} html The HTML string to parse.
+ * @param {string} selector The CSS selector for the desired element.
+ * @param {object} [options={}] - Configuration options.
+ * @param {boolean} [options.returnInnerHtml=false] - If true, returns innerHTML instead of outerHTML.
+ * @param {boolean} [options.stripTags=false] - If true, strips HTML tags from the content. Only applies if returnInnerHtml is true.
+ * @returns {Promise<string|null>} The content string of the first match, or null if not found.
+ */
 export async function querySelector(html, selector, options = {}) {
   if (typeof html !== 'string' || !html.trim()) {
     console.error("ERROR: No valid HTML string provided.");
@@ -229,19 +249,23 @@ export async function querySelector(html, selector, options = {}) {
   }
 
   const collector = await _runRewriter(html, selector, options);
-  // Return the first result if available, otherwise null
-  return collector.results.length ? collector.results[0] : null;
+  
+  // Process the captured content if a result was found
+  if (collector.results.length) {
+    return _processContent(collector.results[0], options);
+  }
+  return null;
 }
 
 /**
- * Returns an array of content strings for all nodes matching `selector`.
- * @param {string} html The HTML string to parse.
- * @param {string} selector The CSS selector for the desired elements.
- * @param {object} [options={}] - Configuration options.
- * @param {boolean} [options.returnInnerHtml=false] - If true, returns innerHTML instead of outerHTML.
- * @param {boolean} [options.stripTags=false] - If true, strips HTML tags from the content. Only applies if returnInnerHtml is true.
- * @returns {Promise<string[]>} An array of content strings for all matches.
- */
+ * Returns an array of content strings for all nodes matching `selector`.
+ * @param {string} html The HTML string to parse.
+ * @param {string} selector The CSS selector for the desired elements.
+ * @param {object} [options={}] - Configuration options.
+ * @param {boolean} [options.returnInnerHtml=false] - If true, returns innerHTML instead of outerHTML.
+ * @param {boolean} [options.stripTags=false] - If true, strips HTML tags from the content. Only applies if returnInnerHtml is true.
+ * @returns {Promise<string[]>} An array of content strings for all matches.
+ */
 export async function querySelectorAll(html, selector, options = {}) {
   if (typeof html !== 'string' || !html.trim()) {
     console.error("ERROR: No valid HTML string provided.");
@@ -249,17 +273,19 @@ export async function querySelectorAll(html, selector, options = {}) {
   }
 
   const collector = await _runRewriter(html, selector, options);
-  return collector.results;
+  
+  // Process all captured results
+  return collector.results.map(content => _processContent(content, options));
 }
 
 /**
- * Returns the content of the element with the specified ID.
- * Alias for querySelector(html, `#${id}`, options).
- * @param {string} html The HTML string to parse.
- * @param {string} id The ID of the element.
- * @param {object} [options={}] - Configuration options (same as querySelector).
- * @returns {Promise<string|null>} The content string of the element, or null if not found.
- */
+ * Returns the content of the element with the specified ID.
+ * Alias for querySelector(html, `#${id}`, options).
+ * @param {string} html The HTML string to parse.
+ * @param {string} id The ID of the element.
+ * @param {object} [options={}] - Configuration options (same as querySelector).
+ * @returns {Promise<string|null>} The content string of the element, or null if not found.
+ */
 export async function getElementById(html, id, options = {}) {
   if (typeof id !== 'string' || !id.trim()) {
     console.error("ERROR: No valid ID provided for getElementById.");
@@ -269,13 +295,13 @@ export async function getElementById(html, id, options = {}) {
 }
 
 /**
- * Returns an array of contents for all elements with the specified class name.
- * Alias for querySelectorAll(html, `.${className}`, options).
- * @param {string} html The HTML string to parse.
- * @param {string} className The class name of the elements.
- * @param {object} [options={}] - Configuration options (same as querySelectorAll).
- * @returns {Promise<string[]>} An array of content strings for the elements.
- */
+ * Returns an array of contents for all elements with the specified class name.
+ * Alias for querySelectorAll(html, `.${className}`, options).
+ * @param {string} html The HTML string to parse.
+ * @param {string} className The class name of the elements.
+ * @param {object} [options={}] - Configuration options (same as querySelectorAll).
+ * @returns {Promise<string[]>} An array of content strings for the elements.
+ */
 export async function getElementsByClassName(html, className, options = {}) {
   if (typeof className !== 'string' || !className.trim()) {
     console.error("ERROR: No valid class name provided for getElementsByClassName.");
@@ -285,13 +311,13 @@ export async function getElementsByClassName(html, className, options = {}) {
 }
 
 /**
- * Returns an array of contents for all elements with the specified tag name.
- * Alias for querySelectorAll(html, `${tagName}`, options).
- * @param {string} html The HTML string to parse.
- * @param {string} tagName The tag name of the elements (e.g., 'div', 'p', 'a').
- * @param {object} [options={}] - Configuration options (same as querySelectorAll).
- * @returns {Promise<string[]>} An array of content strings for the elements.
- */
+ * Returns an array of contents for all elements with the specified tag name.
+ * Alias for querySelectorAll(html, `${tagName}`, options).
+ * @param {string} html The HTML string to parse.
+ * @param {string} tagName The tag name of the elements (e.g., 'div', 'p', 'a').
+ * @param {object} [options={}] - Configuration options (same as querySelectorAll).
+ * @returns {Promise<string[]>} An array of content strings for the elements.
+ */
 export async function getElementsByTagName(html, tagName, options = {}) {
   if (typeof tagName !== 'string' || !tagName.trim()) {
     console.error("ERROR: No valid tag name provided for getElementsByTagName.");
@@ -301,13 +327,13 @@ export async function getElementsByTagName(html, tagName, options = {}) {
 }
 
 /**
- * Returns an array of contents for all elements with the specified 'name' attribute.
- * Alias for querySelectorAll(html, `[name="${name}"]`, options).
- * @param {string} html The HTML string to parse.
- * @param {string} name The value of the 'name' attribute.
- * @param {object} [options={}] - Configuration options (same as querySelectorAll).
- * @returns {Promise<string[]>} An array of content strings for the elements.
- */
+ * Returns an array of contents for all elements with the specified 'name' attribute.
+ * Alias for querySelectorAll(html, `[name="${name}"]`, options).
+ * @param {string} html The HTML string to parse.
+ * @param {string} name The value of the 'name' attribute.
+ * @param {object} [options={}] - Configuration options (same as querySelectorAll).
+ * @returns {Promise<string[]>} An array of content strings for the elements.
+ */
 export async function getElementsByName(html, name, options = {}) {
   if (typeof name !== 'string' || !name.trim()) {
     console.error("ERROR: No valid name attribute value provided for getElementsByName.");
@@ -319,12 +345,12 @@ export async function getElementsByName(html, name, options = {}) {
 }
 
 /**
- * Returns the value of a specific attribute for the first element matching the selector.
- * @param {string} html The HTML string to parse.
- * @param {string} selector The CSS selector for the desired element.
- * @param {string} attributeName The name of the attribute to retrieve (e.g., 'href', 'src', 'alt').
- * @returns {Promise<string|null>} The attribute value, or null if the element or attribute is not found.
- */
+ * Returns the value of a specific attribute for the first element matching the selector.
+ * @param {string} html The HTML string to parse.
+ * @param {string} selector The CSS selector for the desired element.
+ * @param {string} attributeName The name of the attribute to retrieve (e.g., 'href', 'src', 'alt').
+ * @returns {Promise<string|null>} The attribute value, or null if the element or attribute is not found.
+ */
 export async function getAttribute(html, selector, attributeName) {
   if (typeof html !== 'string' || !html.trim()) {
     console.error("ERROR: No valid HTML string provided for getAttribute.");
