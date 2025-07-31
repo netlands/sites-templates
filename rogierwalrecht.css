@@ -14,6 +14,11 @@ html.main-page div.logo-section img {
     width: 300px;
 }
 
+html:not(.main-page) .logo-section img {
+  width: 250px;
+}
+
+
 html.main-page header {
   background: linear-gradient(
     to bottom,
