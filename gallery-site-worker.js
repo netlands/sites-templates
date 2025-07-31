@@ -38,13 +38,13 @@ export default {
       /* here we parse the post contents */
 
 const synonyms = {
-  title: ['name', 'title', 'naam'],
-  artist: ['creator', 'arties'],
+  title: ['title', 'name', 'titel', 'naam'],
+  artist: ['artist', 'creator', 'artiest'],
   medium: ['medium'],
-  date: ['datum'],
-  year: ['jaar'],
-  period: ['periode'],
-  series: ['serie']
+  date: ['date', 'datum'],
+  year: ['year', 'jaar'],
+  period: ['period', 'periode'],
+  series: ['series', 'serie']
 };
 
 const renderOrder = Object.keys(synonyms);
@@ -53,37 +53,47 @@ const prettify = s => s.charAt(0).toUpperCase() + s.slice(1);
 // 1️⃣ Extract post-body <div> content
 const bodyHTML = await querySelector(html, 'div.post-body', { returnInnerHtml: true });
 
-// 2️⃣ Parse individual field lines
+
+// 2️⃣ Extract title
+const objectTitle = await querySelector(html, "div.post h3.post-title",{returnInnerHtml: true, stripTags: true});
+
+
+// 3️⃣ Parse individual field lines
 let parsed = {};
 let parsedRawKeys = {};
 let leftoverLines = [];
 
 // Step 1: Normalize HTML into clean lines
 let cleanHTML = bodyHTML
-  .replace(/\r\n|\r/g, '\n')                // Normalize CRLF to LF
-  .replace(/<div[^>]*>/gi, '\n')            // Line break on opening <div>
-  .replace(/<\/div>/gi, '\n')               // Line break on closing </div>
-  .replace(/<br\s*\/?>/gi, '\n')            // Line break on <br>
-  .replace(/&nbsp;(?=\s*[:=])/gi, ' ')      // Replace nbsp before : or = with a real space
-  .replace(/(?<=[:=]\s*)&nbsp;/gi, '')      // Remove nbsp after :
-  .replace(/^(&nbsp;)+|(&nbsp;)+$/gi, '')   // Trim leading/trailing nbsp
-  .replace(/<[^>]+>/g, '')                  // Strip all other tags
-  .replace(/[ \t]+/g, ' ')                  // Normalize spacing
-  .replace(/\s{2,}/g, ' ');                 // Collapse excess whitespace to single spaces
+  .replace(/\r\n|\r/g, '\n')                     // Normalize CRLF to LF
+  .replace(/<div[^>]*>/gi, '¶')                  // Replace opening <div> with pilcrow
+  .replace(/<\/div>/gi, '¶')                     // Replace closing </div> with pilcrow
+  .replace(/<br\s*\/?>/gi, '¶')                  // Replace <br> with pilcrow
+  .replace(/&nbsp;(?=\s*[:=])/gi, ' ')           // Replace nbsp before : or = with space
+  .replace(/(?<=[:=]\s*)&nbsp;/gi, '')           // Remove nbsp after :
+  .replace(/^(&nbsp;)+|(&nbsp;)+$/gi, '')        // Trim leading/trailing nbsp
+  .replace(/<[^>]+>/g, '')                       // Strip all other tags
+  .replace(/[ \t]+/g, ' ')                       // Normalize spacing
+  .replace(/¶+/g, '¶')                           // Collapse multiple pilcrows
+  .replace(/^\s*¶|¶\s*$/g, '');                  // Trim leading/trailing pilcrows
+  // .replace(/\s*¶\s*/g, '\n');                    // Convert pilcrow to actual line break
+
 
 const lines = cleanHTML
-  .split('\n')
+  .split('¶') // .split('\n')
   .map(line => line.trim())
   .filter(Boolean); // Remove empty lines
 
 // Step 2: Parse structured lines using synonyms
 for (const line of lines) {
   let matched = false;
+
   for (const [canonicalKey, variants] of Object.entries(synonyms)) {
     for (const variant of variants) {
-      const fieldRegex = new RegExp(`^${variant}\\s*[:=]\\s*(.+)$`, 'i');
+      const fieldRegex = new RegExp(`^${variant}\\s*[:=]\\s*(.*)$`, 'i');
       const fieldMatch = line.match(fieldRegex);
-      if (fieldMatch) {
+
+      if (fieldMatch && fieldMatch[1] !== undefined) {
         parsed[canonicalKey] = fieldMatch[1].trim();
         parsedRawKeys[canonicalKey] = variant;
         matched = true;
@@ -92,17 +102,24 @@ for (const line of lines) {
     }
     if (matched) break;
   }
-  if (!matched) leftoverLines.push(line);
+
+  if (!matched) {
+    leftoverLines.push(line);
+  }
 }
 
-// 3️⃣ Extract labels
+// Step 3: Inject fallback title if missing
+if (!parsed.title && objectTitle) {
+  parsed.title = objectTitle.trim();
+}
+
+
+
+// 4️⃣ Extract labels
 let labels = await querySelectorAll(html, "span.post-labels a", {
   returnInnerHtml: true,
   stripTags: true
 });
-
-// 4️⃣ Extract title
-const objectTitle = await querySelector(html, "div.post h3.post-title",{returnInnerHtml: true, stripTags: true});
 
 // 5️⃣ Extract image & link
 const imageLink = await getAttribute(html,"div.post-body div.separator a", "href");
@@ -127,12 +144,12 @@ Object.entries(parsed).forEach(([key, value]) => {
 
 cardHTML += '</div>\n';
 
-let notesHTML = '<div class="notes">\n';/*
+let notesHTML = '<div class="notes">\n';
 for (const line of leftoverLines) {
   notesHTML += `  <p>${line}</p>\n`;
 }
 notesHTML += '</div>\n';
-*/ 
+
 let labelHTML = '';
 if (labels.length > 0) {
   labelHTML += `<div class="object-labels">\n`;
@@ -157,9 +174,10 @@ if (objectTitle) {
   titleHTML = `<h3 class="object-title">${objectTitle}</h3>\n`;
 }
 
-let objectHTML = titleHTML + imageHTML + cardHTML + notesHTML + labelHTML;   
+let objectHTML = titleHTML + imageHTML + cardHTML + notesHTML + labelHTML;
 
-objectHTML = objectHTML + "<br/>==========================================<br/><br/>" + bodyHTML + "<br/>==========================================<br/><br/>" + cleanHTML + "<br/>==========================================<br/><br/>";
+// uncomment to debug original formatting issues
+// objectHTML = objectHTML + "<br/>==========================================<br/><br/>" + cleanHTML + "<br/>--------------------------------------------------------------------------------<br/><br/>" + bodyHTML + "<br/>==========================================<br/><br/>";
 html = insertBeforePost(html, objectHTML);
 
 
@@ -264,7 +282,13 @@ const { tags, recent } = await getMetaDataWithTimeout(url);
 // Rebuild the body
 html = html
   .replace('</head>', `${extraHeadContent}\n</head>`)
-  .replace(bodyMatch[0], `<body>\n${newBodyContent}\n</body>`);
+  // A simple check to ensure the match was successful before trying to use it.
+  if (bodyMatch && bodyMatch[0]) {
+    html = html.replace(bodyMatch[0], `<body>\n${newBodyContent}\n</body>`);
+  } else {
+    // Handle the case where no match was found.
+    console.error("Could not find the <body> tag to replace.");
+  }
 
 
     // add some personalizatipon based on the title
@@ -367,12 +391,48 @@ html = html
   }
 };
 
+/**
+ * Asynchronously fetches a JSON feed, handles potential errors, and returns a sanitized list of entries.
+ * This function is designed to be resilient to non-existent hostnames, network issues, or malformed JSON.
+ * * @param {URL} url The URL object containing the hostname to fetch the feed from.
+ * @returns {Promise<{entries: Array<Object>}>} An object containing an array of feed entries.
+ * Returns `{ entries: [] }` on any error to ensure a consistent return type.
+ */
 async function getParsedJson(url) {
-  const res = await fetch('https://' + url.hostname + '/feeds/posts/default?alt=json');
-  const raw = await res.json();
-  return {
-    entries: raw.feed.entry || []
-  };
+  try {
+    // Construct the full URL for the API endpoint.
+    // The use of try...catch will handle cases where the hostname doesn't exist, leading to a network error.
+    const fullUrl = `https://${url.hostname}/feeds/posts/default?alt=json`;
+    console.log(`Attempting to fetch from: ${fullUrl}`);
+
+    const res = await fetch(fullUrl);
+
+    // Check if the HTTP response status is OK (i.e., in the 200-299 range).
+    // If it's not, we throw an error with the status message.
+    if (!res.ok) {
+      throw new Error(`HTTP error! Status: ${res.status} - ${res.statusText}`);
+    }
+
+    // Attempt to parse the response body as JSON.
+    // This part is also wrapped in the try...catch block to handle malformed JSON.
+    const raw = await res.json();
+    
+    // Use optional chaining (`?.`) to safely access nested properties.
+    // This prevents a 'Cannot read properties of undefined' error if `raw.feed` or `raw.feed.entry` is missing.
+    // The `|| []` provides a default empty array if the entries are not found, ensuring a consistent return type.
+    return {
+      entries: raw?.feed?.entry || []
+    };
+  } catch (error) {
+    // This block catches any errors from the fetch call (network issues) or JSON parsing.
+    console.error("An error occurred while fetching the data:", error);
+    
+    // Return a default value to prevent the calling function from crashing.
+    // This ensures that the function always returns a valid object with an `entries` array.
+    return {
+      entries: []
+    };
+  }
 }
 
 async function getMetaDataWithTimeout(url, timeout = 2000) {
@@ -393,7 +453,7 @@ async function getMetaDataWithTimeout(url, timeout = 2000) {
     const tags = Array.from(tagsSet).sort();
     const recent = recentPosts
     .filter(post => post.published) // ensures published exists
-    .sort((a, b) => new Date(b.published) - new Date(a.published))
+    .sort((a, b) => new Date(b.published) - new Date(a.published)) // warning regarding date formatting can be ignored
     .slice(0, 5);
   
     return { tags, recent };
