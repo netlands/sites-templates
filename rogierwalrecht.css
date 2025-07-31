@@ -10,6 +10,10 @@ html.main-page div.logo-section {
     filter: invert(1);
 }
 
+html.main-page button.icon-button {
+    filter: invert(1);
+}
+
 html.main-page div.logo-section img {
     width: 300px;
 }
