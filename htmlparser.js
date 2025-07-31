@@ -12,12 +12,17 @@ available functions:
 
 Example use:
  import { querySelector, querySelectorAll } from './htmlparser.js'
- 
+
  default: const outerHtmlContent = await querySelector(html, 'div'); // No options, or { returnInnerHtml: false }
  return innerHTML: const innerHtmlContent = await querySelector(html, 'div', { returnInnerHtml: true });
  strip all tags: const plainTextContent = await querySelector(html, 'div', { returnInnerHtml: true, stripTags: true });
 */ 
 
+const debug = false;
+
+if (!debug) {
+  console.log = () => {};
+}
 
 /**
  * A simple test function to verify imports.
