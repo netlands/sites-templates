@@ -323,7 +323,6 @@ button.icon-button {
 }      
 
 
-/* Load Material Symbols */
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
 
 .search-wrapper {
@@ -334,32 +333,40 @@ button.icon-button {
 
 .search-wrapper input {
   width: 100%;
-  padding: 10px 40px; /* space for icon */
+  padding: 10px 40px;
   font-size: 16px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
 
-/* Icon styling */
-.search-icon {
-  font-family: 'Material Symbols Outlined';
+/* Button styling */
+.search-button {
   position: absolute;
-  font-size: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #666;
-  pointer-events: none;
 }
 
-/* Icon on left */
-.search-wrapper.icon-left .search-icon {
+/* Icon inside button */
+.search-button .material-symbols-outlined {
+  font-size: 24px;
+}
+
+/* Positioning */
+.search-wrapper.icon-left .search-button {
   left: 10px;
 }
 
-/* Icon on right */
-.search-wrapper.icon-right .search-icon {
+.search-wrapper.icon-right .search-button {
   right: 10px;
 }
 
-/* Adjust padding based on icon position */
+/* Adjust input padding */
 .search-wrapper.icon-left input {
   padding-left: 40px;
   padding-right: 10px;
@@ -369,7 +376,6 @@ button.icon-button {
   padding-left: 10px;
   padding-right: 40px;
 }
-
 
 
 /* work */
@@ -486,17 +492,21 @@ window.addEventListener('scroll', () => {
 
 <div class="search-section">
   <form action="/search" method="get" class="search-form">
-    <div class="search-wrapper icon-left"> <!-- Toggle class here -->
-      <span class="material-symbols-outlined search-icon">search</span>
+    <div class="search-wrapper icon-right"> <!-- Toggle icon-left or icon-right -->
       <input
         id="search-field"
         name="q"
         placeholder="Search the gallery..."
         type="text"
       />
+      <button type="submit" class="search-button">
+        <span class="material-symbols-outlined">search</span>
+      </button>
     </div>
   </form>
 </div>
+
+
           
     <div class="logo-section">
       <svg viewBox="0 0 100 40" width="80" height="40">
