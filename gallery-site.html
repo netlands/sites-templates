@@ -535,12 +535,37 @@ window.addEventListener('scroll', () => {
     <img id="zoomed-image" src="" alt="Artwork" draggable="false" />
   </div>
 </div>
+<div id="image-caption"></div>
 <div id="zoom-preview">Zoom: 100%</div>
 
 <style>
   :root {
     --overlay-bg: #111;
   }
+
+#image-caption {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 4px;
+  color: #333;
+  font-family: sans-serif;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  display: none;
+  max-width: 90%;
+  text-align: center;
+  white-space: pre-wrap;
+}
+
+#image-overlay.show-caption #image-caption {
+  display: block;
+}
+
+
 
   #image-overlay {
     position: fixed;
@@ -668,6 +693,17 @@ document.addEventListener('DOMContentLoaded', () => {
         fitAndCenterImage();
       };
     });
+
+const caption = img.getAttribute('alt') || '';
+document.getElementById('image-caption').textContent = caption;
+
+// Toggle caption visibility based on CSS class
+if (img.classList.contains('show-caption')) {
+  overlay.classList.add('show-caption');
+} else {
+  overlay.classList.remove('show-caption');
+}
+
 
     const preloadSrc = img.getAttribute('data-original-src');
     if (preloadSrc) {
