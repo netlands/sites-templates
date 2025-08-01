@@ -10,7 +10,7 @@ html.main-page div.logo-section {
     filter: invert(1);
 }
 
-html.main-page button.icon-button {
+html.main-page button.icon-button, html.main-page .menu-toggle-container #search-toggle {
     filter: invert(1);
 }
 
