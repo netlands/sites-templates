@@ -532,80 +532,84 @@ window.addEventListener('scroll', () => {
 <div id="image-overlay">
   <button id="close-overlay">✕</button>
   <div id="zoom-container">
-    <img id="zoomed-image" src="" alt="Artwork" />
+    <img id="zoomed-image" src="" alt="Artwork" draggable="false" />
   </div>
 </div>
 <div id="zoom-preview">Zoom: 100%</div>
+
 <style>
   :root {
-  --overlay-bg: #111; /* Customize background color */
-}
+    --overlay-bg: #111;
+  }
 
-#image-overlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: var(--overlay-bg);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  overflow: hidden;
-}
+  #image-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--overlay-bg);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    overflow: hidden;
+  }
 
-#zoom-container {
-  position: relative;
-  cursor: grab;
-  overflow: hidden;
-}
+  #zoom-container {
+    position: relative;
+    cursor: grab;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+  }
 
-#zoomed-image {
-  max-width: none;
-  max-height: none;
-  transform-origin: center center;
-  transition: transform 0.2s ease;
-}
+  #zoomed-image {
+    max-width: none;
+    max-height: none;
+    transform-origin: center center;
+    user-drag: none;
+    user-select: none;
+    pointer-events: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
 
-#close-overlay {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: #fff;
-  border: none;
-  font-size: 24px;
-  padding: 5px 10px;
-  cursor: pointer;
-  z-index: 10000;
-  border-radius: 4px;
-}
+  #close-overlay {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #fff;
+    border: none;
+    font-size: 24px;
+    padding: 5px 10px;
+    cursor: pointer;
+    z-index: 10000;
+    border-radius: 4px;
+  }
 
-
-#zoom-preview {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 6px 12px;
-  font-size: 14px;
-  border-radius: 4px;
-  color: #333;
-  z-index: 10000;
-  font-family: sans-serif;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
-
-
+  #zoom-preview {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 6px 12px;
+    font-size: 14px;
+    border-radius: 4px;
+    color: #333;
+    z-index: 10000;
+    font-family: sans-serif;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
 </style>
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
 
+<script>
+document.addEventListener('DOMContentLoaded', () => {
   const overlay = document.getElementById('image-overlay');
   const zoomedImage = document.getElementById('zoomed-image');
   const closeBtn = document.getElementById('close-overlay');
   const zoomContainer = document.getElementById('zoom-container');
   const zoomPreview = document.getElementById('zoom-preview');
-
 
   let scale = 1;
   let originX = 0;
@@ -613,27 +617,22 @@ window.addEventListener('scroll', () => {
   let isDragging = false;
   let startX, startY;
 
-document.querySelectorAll('.preview-link').forEach(link => {
-  link.addEventListener('click', e => {
-    e.preventDefault(); // Stop navigation
-    const imageUrl = link.getAttribute('href');
-
-    zoomedImage.src = imageUrl;
-    scale = 1;
-    originX = 0;
-    originY = 0;
-    zoomedImage.style.transform = `translate(0px, 0px) scale(1)`;
-    zoomPreview.textContent = `Zoom: 100%`;
-    overlay.style.display = 'flex';
+  // Open overlay
+  document.querySelectorAll('.preview-link').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const imageUrl = link.getAttribute('href');
+      zoomedImage.src = imageUrl;
+      scale = 1;
+      originX = 0;
+      originY = 0;
+      zoomedImage.style.transform = `translate(0px, 0px) scale(1)`;
+      zoomPreview.textContent = `Zoom: 100%`;
+      overlay.style.display = 'flex';
+    });
   });
-});
 
-document.getElementById('close-overlay').addEventListener('click', () => {
-  overlay.style.display = 'none';
-});
-
-
-
+  // Close overlay
   closeBtn.addEventListener('click', () => {
     overlay.style.display = 'none';
   });
@@ -641,9 +640,20 @@ document.getElementById('close-overlay').addEventListener('click', () => {
   // Zoom with scroll
   zoomContainer.addEventListener('wheel', e => {
     e.preventDefault();
+    const rect = zoomedImage.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    scale = Math.min(Math.max(scale + delta, 0.5), 5);
+    const newScale = Math.min(Math.max(scale + delta, 0.5), 5);
+
+    // Adjust origin to zoom toward cursor
+    originX -= (mouseX - originX) * (newScale / scale - 1);
+    originY -= (mouseY - originY) * (newScale / scale - 1);
+
+    scale = newScale;
     zoomedImage.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
+    zoomPreview.textContent = `Zoom: ${Math.round(scale * 100)}%`;
   });
 
   // Drag to pan
@@ -652,21 +662,26 @@ document.getElementById('close-overlay').addEventListener('click', () => {
     startX = e.clientX - originX;
     startY = e.clientY - originY;
     zoomContainer.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
   });
 
   window.addEventListener('mouseup', () => {
     isDragging = false;
     zoomContainer.style.cursor = 'grab';
+    document.body.style.userSelect = '';
   });
 
   window.addEventListener('mousemove', e => {
     if (!isDragging) return;
+
     originX = e.clientX - startX;
     originY = e.clientY - startY;
-    zoomedImage.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
+
+    requestAnimationFrame(() => {
+      zoomedImage.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
+    });
   });
 });
-
 </script>
 </body>
 </html>
