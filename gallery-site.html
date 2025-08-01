@@ -322,12 +322,15 @@ html.post-page img {
 <script>
 
   document.addEventListener("DOMContentLoaded", function () {
-    const toggle = document.getElementById("search-toggle");
-    
-    toggle.addEventListener("click", function (e) {
-      e.preventDefault();
-      document.body.classList.toggle("show-search-box");
-    });
+          const searchToggles = document.querySelectorAll(".search-toggle");
+        
+          searchToggles.forEach(toggle => {
+            toggle.addEventListener("click", function (e) {
+              e.preventDefault();
+              document.body.classList.toggle("show-search-box");
+            });
+          });
+
 
     const menuToggleBtn = document.getElementById('menu-toggle');
     const menuIcon = menuToggleBtn.querySelector('.material-symbols-outlined');
@@ -405,7 +408,7 @@ window.addEventListener('scroll', () => {
       <button class="icon-button" id="menu-toggle" aria-label="Toggle menu">
         <span class="material-symbols-outlined">menu</span>
       </button>
-      <a href="#" id="search-toggle" class="search-toggle-link">
+      <a href="#" id="search-toggle-small" class="search-toggle search-toggle-link">
         <span class="material-symbols-outlined">search</span> Search
       </a>
     </div>
@@ -415,7 +418,7 @@ window.addEventListener('scroll', () => {
       <a href="/p/portfolio.html" class="top-menu-item">Work</a>
       <a href="/p/news.html" class="top-menu-item">Latest</a>
       <a href="/p/contact.html" class="top-menu-item">Contact</a>              
-      <a href="#" id="search-toggle" class="search-toggle-link">
+      <a href="#" id="search-toggle-main" class="search-toggle search-toggle-link">
           <span class="material-symbols-outlined">search</span> Search
       </a>
     </div>
