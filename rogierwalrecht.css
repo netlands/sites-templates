@@ -62,3 +62,7 @@ html.main-page h3.post-title, html.main-page div.blog-pager {
   display: inline-block;
   color: inherit;
 }
+
+.nav-section.collapsible-menu.open {
+    color: black;
+}
