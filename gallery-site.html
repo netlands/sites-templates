@@ -776,9 +776,40 @@ zoomContainer.addEventListener('wheel', e => {
   });
 
   // Double-click to reset
-  zoomContainer.addEventListener('dblclick', () => {
-    fitAndCenterImage();
-  });
+zoomContainer.addEventListener('dblclick', () => {
+  const containerRect = zoomContainer.getBoundingClientRect();
+  const containerW = containerRect.width;
+  const containerH = containerRect.height;
+
+  const fittedScaleW = containerW / naturalWidth;
+  const fittedScaleH = containerH / naturalHeight;
+  const fittedScale = Math.min(fittedScaleW, fittedScaleH);
+
+  const isFitted = Math.abs(scale - fittedScale) < 0.01;
+
+  if (isFitted) {
+    // Zoom to 100%
+    scale = 1;
+    originX = (containerW - naturalWidth) / 2;
+    originY = (containerH - naturalHeight) / 2;
+  } else {
+    // Fit to window
+    scale = fittedScale;
+    const imgRatio = naturalWidth / naturalHeight;
+    const containerRatio = containerW / containerH;
+
+    if (imgRatio > containerRatio) {
+      originX = 0;
+      originY = (containerH - naturalHeight * scale) / 2;
+    } else {
+      originX = (containerW - naturalWidth * scale) / 2;
+      originY = 0;
+    }
+  }
+
+  applyTransform();
+  zoomPreview.textContent = `Zoom: ${Math.round(scale * 100)}%`;
+});
 });
 </script>
 
