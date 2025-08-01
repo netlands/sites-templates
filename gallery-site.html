@@ -322,7 +322,57 @@ button.icon-button {
   color: inherit;     /* optional: inherit text/icon color */
 }      
 
-/ * work */
+
+/* Load Material Symbols */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
+
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-wrapper input {
+  width: 100%;
+  padding: 10px 40px; /* space for icon */
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Icon styling */
+.search-icon {
+  font-family: 'Material Symbols Outlined';
+  position: absolute;
+  font-size: 24px;
+  color: #666;
+  pointer-events: none;
+}
+
+/* Icon on left */
+.search-wrapper.icon-left .search-icon {
+  left: 10px;
+}
+
+/* Icon on right */
+.search-wrapper.icon-right .search-icon {
+  right: 10px;
+}
+
+/* Adjust padding based on icon position */
+.search-wrapper.icon-left input {
+  padding-left: 40px;
+  padding-right: 10px;
+}
+
+.search-wrapper.icon-right input {
+  padding-left: 10px;
+  padding-right: 40px;
+}
+
+
+
+/* work */
 html.post-page img {
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.05),      /* gentle top/left glow */
@@ -434,12 +484,19 @@ window.addEventListener('scroll', () => {
       </a>
     </div>
 
-          <div class="search-section">
-          <form action='/search' method='get' class="search-form">
-            <input id="search-field" name='q' placeholder='Search the gallery...' type='text'/>
-            <input id="search-button" type='submit' value='Search'/>
-          </form>
-        </div>
+<div class="search-section">
+  <form action="/search" method="get" class="search-form">
+    <div class="search-wrapper icon-left"> <!-- Toggle class here -->
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input
+        id="search-field"
+        name="q"
+        placeholder="Search the gallery..."
+        type="text"
+      />
+    </div>
+  </form>
+</div>
           
     <div class="logo-section">
       <svg viewBox="0 0 100 40" width="80" height="40">
