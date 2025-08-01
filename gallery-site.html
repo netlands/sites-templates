@@ -607,7 +607,6 @@ window.addEventListener('scroll', () => {
   }
 
 </style>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const overlay = document.getElementById('image-overlay');
@@ -632,12 +631,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const imgRatio = naturalWidth / naturalHeight;
     const containerRatio = containerW / containerH;
 
-    scale = imgRatio > containerRatio
-      ? containerW / naturalWidth
-      : containerH / naturalHeight;
-
-    originX = (containerW - naturalWidth * scale) / 2;
-    originY = (containerH - naturalHeight * scale) / 2;
+    if (imgRatio > containerRatio) {
+      // Wide image: fit to width, center vertically
+      scale = containerW / naturalWidth;
+      originX = 0;
+      originY = (containerH - naturalHeight * scale) / 2;
+    } else {
+      // Tall image: fit to height, align top
+      scale = containerH / naturalHeight;
+      originX = (containerW - naturalWidth * scale) / 2;
+      originY = 0;
+    }
 
     applyTransform();
     zoomPreview.textContent = `Zoom: ${Math.round(scale * 100)}%`;
@@ -674,18 +678,20 @@ document.addEventListener('DOMContentLoaded', () => {
     overlay.style.display = 'none';
   });
 
-  // Zoom with scroll (toward mouse)
+  // Zoom with scroll (accurate toward cursor)
   zoomContainer.addEventListener('wheel', e => {
     e.preventDefault();
-    const rect = zoomedImage.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+
+    const containerRect = zoomContainer.getBoundingClientRect();
+    const mouseX = e.clientX - containerRect.left;
+    const mouseY = e.clientY - containerRect.top;
 
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
     const newScale = Math.min(Math.max(scale + delta, 0.5), 5);
 
-    originX -= (mouseX - originX) * (newScale / scale - 1);
-    originY -= (mouseY - originY) * (newScale / scale - 1);
+    // Adjust origin to zoom toward cursor
+    originX = mouseX - ((mouseX - originX) * newScale / scale);
+    originY = mouseY - ((mouseY - originY) * newScale / scale);
 
     scale = newScale;
     applyTransform();
@@ -720,5 +726,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+
 </body>
 </html>
