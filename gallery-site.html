@@ -591,14 +591,26 @@ window.addEventListener('scroll', () => {
   let isDragging = false;
   let startX, startY;
 
-  document.querySelectorAll('.artwork').forEach(img => {
-    img.addEventListener('click', () => {
-      zoomedImage.src = img.src;
-      scale = 1;
-      zoomedImage.style.transform = `translate(0px, 0px) scale(1)`;
-      overlay.style.display = 'flex';
-    });
+document.querySelectorAll('.preview-link').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault(); // Stop navigation
+    const imageUrl = link.getAttribute('href');
+
+    zoomedImage.src = imageUrl;
+    scale = 1;
+    originX = 0;
+    originY = 0;
+    zoomedImage.style.transform = `translate(0px, 0px) scale(1)`;
+    zoomPreview.textContent = `Zoom: 100%`;
+    overlay.style.display = 'flex';
   });
+});
+
+document.getElementById('close-overlay').addEventListener('click', () => {
+  overlay.style.display = 'none';
+});
+
+
 
   closeBtn.addEventListener('click', () => {
     overlay.style.display = 'none';
