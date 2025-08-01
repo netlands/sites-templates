@@ -535,6 +535,7 @@ window.addEventListener('scroll', () => {
     <img id="zoomed-image" src="" alt="Artwork" />
   </div>
 </div>
+<div id="zoom-preview">Zoom: 100%</div>
 <style>
   :root {
   --overlay-bg: #111; /* Customize background color */
@@ -578,12 +579,33 @@ window.addEventListener('scroll', () => {
   z-index: 10000;
   border-radius: 4px;
 }
+
+
+#zoom-preview {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 4px;
+  color: #333;
+  z-index: 10000;
+  font-family: sans-serif;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+
 </style>
 <script>
+  document.addEventListener('DOMContentLoaded', () => {
+
   const overlay = document.getElementById('image-overlay');
   const zoomedImage = document.getElementById('zoomed-image');
   const closeBtn = document.getElementById('close-overlay');
   const zoomContainer = document.getElementById('zoom-container');
+  const zoomPreview = document.getElementById('zoom-preview');
+
 
   let scale = 1;
   let originX = 0;
@@ -643,6 +665,7 @@ document.getElementById('close-overlay').addEventListener('click', () => {
     originY = e.clientY - startY;
     zoomedImage.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
   });
+});
 
 </script>
 </body>
