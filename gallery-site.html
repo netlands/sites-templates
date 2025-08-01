@@ -600,6 +600,12 @@ window.addEventListener('scroll', () => {
     left: 0;
   }
 
+#zoomed-image {
+  transform-origin: top left;
+}
+
+
+
   #close-overlay {
     position: absolute;
     top: 20px;
@@ -649,27 +655,27 @@ document.addEventListener('DOMContentLoaded', () => {
   let naturalHeight = 0;
   let maxZoomScale = 2.5; // Default max zoom
 
-  function fitAndCenterImage() {
-    const containerRect = zoomContainer.getBoundingClientRect();
-    const containerW = containerRect.width;
-    const containerH = containerRect.height;
+function fitAndCenterImage() {
+  const containerRect = zoomContainer.getBoundingClientRect();
+  const containerW = containerRect.width;
+  const containerH = containerRect.height;
 
-    const imgRatio = naturalWidth / naturalHeight;
-    const containerRatio = containerW / containerH;
+  const imgRatio = naturalWidth / naturalHeight;
+  const containerRatio = containerW / containerH;
 
-    if (imgRatio > containerRatio) {
-      scale = containerW / naturalWidth;
-      originX = 0;
-      originY = (containerH - naturalHeight * scale) / 2;
-    } else {
-      scale = containerH / naturalHeight;
-      originX = (containerW - naturalWidth * scale) / 2;
-      originY = 0;
-    }
-
-    applyTransform();
-    zoomPreview.textContent = `Zoom: ${Math.round(scale * 100)}%`;
+  if (imgRatio > containerRatio) {
+    scale = containerW / naturalWidth;
+    originX = 0;
+    originY = (containerH - naturalHeight * scale) / 2;
+  } else {
+    scale = containerH / naturalHeight;
+    originX = (containerW - naturalWidth * scale) / 2;
+    originY = 0;
   }
+
+  applyTransform();
+  zoomPreview.textContent = `Zoom: ${Math.round(scale * 100)}%`;
+}
 
   function applyTransform() {
     zoomedImage.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
@@ -724,23 +730,28 @@ if (img.classList.contains('show-caption')) {
   });
 
   // Zoom with scroll (toward cursor)
-  zoomContainer.addEventListener('wheel', e => {
-    e.preventDefault();
+zoomContainer.addEventListener('wheel', e => {
+  e.preventDefault();
 
-    const containerRect = zoomContainer.getBoundingClientRect();
-    const mouseX = e.clientX - containerRect.left;
-    const mouseY = e.clientY - containerRect.top;
+  const containerRect = zoomContainer.getBoundingClientRect();
+  const mouseX = e.clientX - containerRect.left;
+  const mouseY = e.clientY - containerRect.top;
 
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    const newScale = Math.min(Math.max(scale + delta, 0.5), maxZoomScale);
+  const delta = e.deltaY > 0 ? -0.1 : 0.1;
+  const newScale = Math.min(Math.max(scale + delta, 0.5), maxZoomScale);
 
-    originX = mouseX - ((mouseX - originX) * newScale / scale);
-    originY = mouseY - ((mouseY - originY) * newScale / scale);
+  // Calculate mouse position in image space
+  const imgX = (mouseX - originX) / scale;
+  const imgY = (mouseY - originY) / scale;
 
-    scale = newScale;
-    applyTransform();
-    zoomPreview.textContent = `Zoom: ${Math.round(scale * 100)}%`;
-  });
+  // Adjust origin to keep mouse position stable
+  originX = mouseX - imgX * newScale;
+  originY = mouseY - imgY * newScale;
+
+  scale = newScale;
+  applyTransform();
+  zoomPreview.textContent = `Zoom: ${Math.round(scale * 100)}%`;
+});
 
   // Drag to pan
   zoomContainer.addEventListener('mousedown', e => {
