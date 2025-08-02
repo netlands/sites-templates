@@ -1105,65 +1105,8 @@ zoomContainer.addEventListener('dblclick', () => {
       document.body.appendChild(wrapper);
     }
   
-  
-    let currentEditedSelector = '';
-    let selectorHighlight = null;
-
-    function highlightCurrentSelector() {
-      if (selectorHighlight) {
-        selectorHighlight.forEach(el => el.style.outline = '');
-        selectorHighlight = null;
-      }
-
-      const cursorPos = textarea.selectionStart;
-      const css = textarea.value;
-      const beforeCursor = css.slice(0, cursorPos);
-      const lines = beforeCursor.split('\n');
-
-      // Find the last selector line before a `{`
-      let selectorLine = '';
-      for (let i = lines.length - 1; i >= 0; i--) {
-        if (lines[i].includes('{')) {
-          selectorLine = lines[i].split('{')[0].trim();
-          break;
-        }
-      }
-
-      if (selectorLine && selectorLine !== currentEditedSelector) {
-        currentEditedSelector = selectorLine;
-        try {
-          const elements = document.querySelectorAll(selectorLine);
-          if (elements.length) {
-            selectorHighlight = Array.from(elements);
-            selectorHighlight.forEach(el => {
-              el.style.outline = '1px dotted red';
-            });
-          }
-        } catch (err) {
-          // Invalid selector, ignore
-        }
-      }
-    }
-
-    // Trigger highlight on keyup and click inside textarea
-    textarea.addEventListener('keyup', highlightCurrentSelector);
-    textarea.addEventListener('click', highlightCurrentSelector);
-
-    closeBtn.addEventListener('click', () => {
-      if (selectorHighlight) {
-        selectorHighlight.forEach(el => el.style.outline = '');
-        selectorHighlight = null;
-      }
-      wrapper.remove();
-    });
-
-
-  
-  
-  
-  
   });
-  
+ 
 })();
 
 function simplifySelector(selector) {
