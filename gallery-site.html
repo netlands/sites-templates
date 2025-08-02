@@ -978,7 +978,7 @@ zoomContainer.addEventListener('dblclick', () => {
 
       const pathLabel = document.createElement('label');
       pathLabel.htmlFor = 'pathToggle';
-      pathLabel.innerText = ' Show path under cursor';
+      pathLabel.innerText = ' Show path under cursor (Ctrl click to insert)';
       Object.assign(pathLabel.style, {
         display: 'flex',
         alignItems: 'center',
@@ -1062,11 +1062,12 @@ zoomContainer.addEventListener('dblclick', () => {
         }
       }
 
+
       document.addEventListener('mousemove', e => {
         if (pathCheckbox.checked) {
           const el = e.target;
-          const path = getCssPath(el);
-          pathDisplay.value = path;
+          // const path = getCssPath(el);
+          // pathDisplay.value = path;
           highlightElement(el);
         } else if (lastHighlighted) {
           lastHighlighted.style.outline = '';
@@ -1075,10 +1076,12 @@ zoomContainer.addEventListener('dblclick', () => {
       });
 
       document.addEventListener('click', e => {
-        if (pathCheckbox.checked && e.target !== pathCheckbox && e.target !== pathDisplay) {
+        if (pathCheckbox.checked && e.ctrlKey && e.target !== pathCheckbox && e.target !== pathDisplay) {
           e.preventDefault();
-           const path = getCssPath(e.target);
+          const path = getCssPath(e.target);
           pathDisplay.value = path;
+
+          highlightElement(e.target); // Optional: reinforce highlight
 
           // Insert selector into textarea if not already present
           if (!textarea.value.includes(path)) {
@@ -1097,7 +1100,7 @@ zoomContainer.addEventListener('dblclick', () => {
       wrapper.appendChild(textarea);
       wrapper.appendChild(label);
       wrapper.appendChild(pathLabel);
-      wrapper.appendChild(pathDisplay);      
+      wrapper.appendChild(pathDisplay);
       document.body.appendChild(wrapper);
     }
   });
