@@ -379,12 +379,19 @@ button.icon-button {
 
 
 /* work */
-html.post-page div.object img {
-  box-shadow:
+
+.image-frame {
+  display: inline-block; /* shrink-wrap to content */
+  padding: 0;             /* no extra space */
+  margin: 0;
+  line-height: 0;         /* remove whitespace gaps */
+
+    box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.05),      /* gentle top/left glow */
     2px 3px 8px rgba(0, 0, 0, 0.12);    /* richer bottom/right lift */
-}         
-        
+}
+
+
 </style>
 <script>
 
