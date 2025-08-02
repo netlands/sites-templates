@@ -884,7 +884,7 @@ zoomContainer.addEventListener('dblclick', () => {
       // Direction icon
       const dirIcon = document.createElement('span');
       dirIcon.className = 'material-symbols-outlined';
-      dirIcon.innerText = 'expand_more';
+      dirIcon.innerText = 'dropdown';
       dirIcon.title = 'Move position';
       dirIcon.dataset.dir = 'right';
       Object.assign(dirIcon.style, {
@@ -894,12 +894,12 @@ zoomContainer.addEventListener('dblclick', () => {
         color: '#000'
       });
 
-      const directions = ['right', 'down', 'left', 'up'];
+      const directions = ['down', 'left', 'up', 'right'];
       const rotations = {
-        down: 'rotate(0deg)',
-        left: 'rotate(90deg)',
-        up: 'rotate(180deg)',
-        right: 'rotate(-90deg)'
+        down: 'rotate(90deg)',
+        left: 'rotate(180deg)',
+        up: 'rotate(-90deg)',
+        right: 'rotate(0deg)'
       };
       const positions = {
         down: { top: '', bottom: '10px', left: '', right: '10px' },
