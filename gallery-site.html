@@ -1115,8 +1115,8 @@ function simplifySelector(selector) {
     // Remove :nth-child pseudo-selectors
     .replace(/:nth-child\(\d+\)/g, '')
     // Remove unnecessary tag names before classes/IDs (e.g., div.class → .class)
-    //.replace(/\b\s\w+(?=\.(\w|-)+)/g, '')
-    .replace(/\b\s\w+(?=#(\w|-)+)/g, '')
+    //.replace(/\b\w+(?=\.(\w|-)+)/g, '')
+    //.replace(/\b\w+(?=#(\w|-)+)/g, '')
     // Remove redundant spaces and combinators
     .replace(/\s*>\s*/g, ' ') // convert child combinators to space
     .replace(/\s+/g, ' ')     // collapse multiple spaces
