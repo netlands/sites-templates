@@ -824,7 +824,7 @@ zoomContainer.addEventListener('dblclick', () => {
 // Live CSS Editor
 // This script allows you to edit CSS styles live on the page by clicking any element with class "style-editor" while holding Ctrl.
 // It creates a draggable textarea for CSS input, with an option to add !important to rules
-
+ 
 (function() {
   // Load Material Symbols font
   const fontLink = document.createElement('link');
@@ -832,7 +832,6 @@ zoomContainer.addEventListener('dblclick', () => {
   fontLink.rel = 'stylesheet';
   document.head.appendChild(fontLink);
 
-  // Only activate on Ctrl+Click of .style-editor links
   document.addEventListener('click', function(e) {
     if (e.ctrlKey && e.target.matches('a.style-editor')) {
       e.preventDefault();
@@ -860,38 +859,69 @@ zoomContainer.addEventListener('dblclick', () => {
         gap: '6px'
       });
 
-      // Drag logic
-      wrapper.style.cursor = 'move';
-      let isDragging = false, offsetX = 0, offsetY = 0;
-      wrapper.addEventListener('mousedown', function(e) {
-        if (e.target !== wrapper) return;
-        isDragging = true;
-        offsetX = e.clientX - wrapper.offsetLeft;
-        offsetY = e.clientY - wrapper.offsetTop;
-        e.preventDefault();
+      // Header bar for close + direction
+      const header = document.createElement('div');
+      Object.assign(header.style, {
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: '8px',
+        marginBottom: '4px'
       });
-      document.addEventListener('mousemove', function(e) {
-        if (!isDragging) return;
-        wrapper.style.left = (e.clientX - offsetX) + 'px';
-        wrapper.style.top = (e.clientY - offsetY) + 'px';
-        wrapper.style.right = '';
-        wrapper.style.bottom = '';
-      });
-      document.addEventListener('mouseup', () => isDragging = false);
 
-      // Close button
-      const closeBtn = document.createElement('button');
-      closeBtn.innerText = '✖';
+      // Close button (Material icon)
+      const closeBtn = document.createElement('span');
+      closeBtn.className = 'material-symbols-outlined';
+      closeBtn.innerText = 'close';
       Object.assign(closeBtn.style, {
-        alignSelf: 'flex-end',
-        background: '#f33',
-        color: '#fff',
-        border: 'none',
-        padding: '2px 6px',
+        fontSize: '20px',
         cursor: 'pointer',
-        fontSize: '14px'
+        color: '#f33'
       });
+      closeBtn.title = 'Close';
       closeBtn.addEventListener('click', () => wrapper.remove());
+
+      // Direction icon
+      const dirIcon = document.createElement('span');
+      dirIcon.className = 'material-symbols-outlined';
+      dirIcon.innerText = 'expand_more';
+      dirIcon.title = 'Move position';
+      dirIcon.dataset.dir = 'down';
+      Object.assign(dirIcon.style, {
+        fontSize: '20px',
+        transition: 'transform 0.2s ease-in-out',
+        cursor: 'pointer',
+        color: '#333'
+      });
+
+      const directions = ['down', 'left', 'up', 'right'];
+      const rotations = {
+        down: 'rotate(0deg)',
+        left: 'rotate(90deg)',
+        up: 'rotate(180deg)',
+        right: 'rotate(-90deg)'
+      };
+      const positions = {
+        down: { top: '', bottom: '10px', left: '', right: '10px' },
+        left: { top: '40px', bottom: '', left: '10px', right: '' },
+        up: { top: '10px', bottom: '', left: '', right: '10px' },
+        right: { top: '40px', bottom: '', left: '', right: '10px' }
+      };
+      let currentDir = 0;
+
+      function updatePosition(dir) {
+        Object.entries(positions[dir]).forEach(([key, val]) => {
+          wrapper.style[key] = val;
+        });
+        dirIcon.style.transform = rotations[dir];
+        dirIcon.dataset.dir = dir;
+      }
+
+      dirIcon.addEventListener('click', () => {
+        currentDir = (currentDir + 1) % directions.length;
+        updatePosition(directions[currentDir]);
+      });
+
+      updatePosition(directions[currentDir]); // initial
 
       // Textarea
       const textarea = document.createElement('textarea');
@@ -906,46 +936,19 @@ zoomContainer.addEventListener('dblclick', () => {
       const label = document.createElement('label');
       label.htmlFor = 'importantToggle';
       label.innerText = ' !important';
-      label.style.display = 'flex';
-      label.style.alignItems = 'center';
-      label.style.gap = '6px';
-      label.style.fontFamily = 'monospace';
-      label.style.fontSize = '14px';
-      label.style.cursor = 'pointer';
-
-      // Direction icon
-      const dirIcon = document.createElement('span');
-      dirIcon.className = 'material-symbols-outlined';
-      dirIcon.innerText = 'expand_more';
-      dirIcon.title = 'Click to change direction';
-      dirIcon.dataset.dir = 'down';
-      Object.assign(dirIcon.style, {
-        fontSize: '24px',
-        transition: 'transform 0.2s ease-in-out',
-        cursor: 'pointer',
-        display: 'inline-block'
-      });
-
-      const directions = ['down', 'left', 'up', 'right'];
-      const rotations = {
-        down: 'rotate(0deg)',
-        left: 'rotate(90deg)',
-        up: 'rotate(180deg)',
-        right: 'rotate(-90deg)'
-      };
-      let currentDir = 0;
-      dirIcon.style.transform = rotations[directions[currentDir]];
-      dirIcon.addEventListener('click', () => {
-        currentDir = (currentDir + 1) % directions.length;
-        dirIcon.dataset.dir = directions[currentDir];
-        dirIcon.style.transform = rotations[directions[currentDir]];
+      Object.assign(label.style, {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        fontFamily: 'monospace',
+        fontSize: '14px',
+        cursor: 'pointer'
       });
 
       // Style tag
       const styleTag = document.createElement('style');
       document.head.appendChild(styleTag);
 
-      // CSS processor
       function addImportant(css) {
         return css.replace(/([^{}]+){([^}]+)}/g, function(_, selector, rules) {
           var importantRules = rules
@@ -959,23 +962,22 @@ zoomContainer.addEventListener('dblclick', () => {
         });
       }
 
-      // Update styles
       textarea.addEventListener('input', function() {
         const css = textarea.value;
         styleTag.innerHTML = checkbox.checked ? addImportant(css) : css;
       });
 
       // Assemble
-      wrapper.appendChild(closeBtn);
+      header.appendChild(dirIcon);
+      header.appendChild(closeBtn);
+      wrapper.appendChild(header);
       wrapper.appendChild(textarea);
-      wrapper.appendChild(label);
       label.insertBefore(checkbox, label.firstChild);
-      wrapper.appendChild(dirIcon);
+      wrapper.appendChild(label);
       document.body.appendChild(wrapper);
     }
   });
 })();
-
 </script>
 </body>
 </html>
