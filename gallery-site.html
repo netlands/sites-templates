@@ -894,18 +894,18 @@ zoomContainer.addEventListener('dblclick', () => {
         color: '#000'
       });
 
-      const directions = ['right', 'down', 'left', 'up'];
+      const directions = ['right', 'down', 'up', 'left'];
       const rotations = {
-        down: 'rotate(90deg)',
-        left: 'rotate(180deg)',
+        down: 'rotate(180deg)',
+        left: 'rotate(0deg)',
         up: 'rotate(-90deg)',
-        right: 'rotate(0deg)'
+        right: 'rotate(90deg)'
       };
       const positions = {
         down: { top: '', bottom: '10px', left: '', right: '10px' },
-        left: { top: '40px', bottom: '', left: '10px', right: '' },
-        up: { top: '10px', bottom: '', left: '', right: '10px' },
-        right: { top: '40px', bottom: '', left: '', right: '10px' }
+        left: { top: '10px', bottom: '', left: '10px', right: '' },
+        up: { top: '', bottom: '10px', left: '10px', right: '' },
+        right: { top: '10px', bottom: '', left: '', right: '10px' }
       };
       let currentDir = 0;
 
