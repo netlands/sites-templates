@@ -829,12 +829,51 @@ zoomContainer.addEventListener('dblclick', () => {
   fontLink.rel = 'stylesheet';
   document.head.appendChild(fontLink);
 
+  let textarea = null;
+  let currentEditedSelector = '';
+  let selectorHighlight = null;
+
+  function highlightCurrentSelector() {
+    if (!textarea) return;
+    if (selectorHighlight) {
+      selectorHighlight.forEach(el => el.style.outline = '');
+      selectorHighlight = null;
+    }
+
+    const cursorPos = textarea.selectionStart;
+    const css = textarea.value;
+    const beforeCursor = css.slice(0, cursorPos);
+    const lines = beforeCursor.split('\n');
+
+    let selectorLine = '';
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (lines[i].includes('{')) {
+        selectorLine = lines[i].split('{')[0].trim();
+        break;
+      }
+    }
+
+    if (selectorLine && selectorLine !== currentEditedSelector) {
+      currentEditedSelector = selectorLine;
+      try {
+        const elements = document.querySelectorAll(selectorLine);
+        if (elements.length) {
+          selectorHighlight = Array.from(elements);
+          selectorHighlight.forEach(el => {
+            el.style.outline = '1px dotted red';
+          });
+        }
+      } catch (err) {
+        // Invalid selector, ignore
+      }
+    }
+  }
+
   document.addEventListener('click', function(e) {
     if (e.ctrlKey && e.target.matches('.style-editor')) {
       e.preventDefault();
       if (document.getElementById('liveStyleEditor')) return;
 
-      // Create wrapper
       const wrapper = document.createElement('div');
       wrapper.id = 'liveStyleEditor';
       Object.assign(wrapper.style, {
@@ -856,7 +895,6 @@ zoomContainer.addEventListener('dblclick', () => {
         gap: '6px'
       });
 
-      // Header bar
       const header = document.createElement('div');
       Object.assign(header.style, {
         display: 'flex',
@@ -865,7 +903,6 @@ zoomContainer.addEventListener('dblclick', () => {
         marginBottom: '4px'
       });
 
-      // Close button (black icon)
       const closeBtn = document.createElement('span');
       closeBtn.className = 'material-symbols-outlined';
       closeBtn.innerText = 'close';
@@ -875,9 +912,14 @@ zoomContainer.addEventListener('dblclick', () => {
         color: '#000'
       });
       closeBtn.title = 'Close';
-      closeBtn.addEventListener('click', () => wrapper.remove());
+      closeBtn.addEventListener('click', () => {
+        if (selectorHighlight) {
+          selectorHighlight.forEach(el => el.style.outline = '');
+          selectorHighlight = null;
+        }
+        wrapper.remove();
+      });
 
-      // Direction icon
       const dirIcon = document.createElement('span');
       dirIcon.className = 'material-symbols-outlined';
       dirIcon.innerText = 'dropdown';
@@ -921,9 +963,8 @@ zoomContainer.addEventListener('dblclick', () => {
         updatePosition(directions[currentDir]);
       });
 
-      updatePosition(directions[currentDir]); // initial position
+      updatePosition(directions[currentDir]);
 
-      // Format button
       const formatBtn = document.createElement('button');
       formatBtn.innerText = 'Format CSS';
       Object.assign(formatBtn.style, {
@@ -943,8 +984,7 @@ zoomContainer.addEventListener('dblclick', () => {
           .trim();
       }
 
-      // Textarea
-      const textarea = document.createElement('textarea');
+      textarea = document.createElement('textarea');
       textarea.style.flex = '1';
       textarea.placeholder = 'Type CSS here...';
 
@@ -953,7 +993,9 @@ zoomContainer.addEventListener('dblclick', () => {
         updateStyles();
       });
 
-      // !important checkbox
+      textarea.addEventListener('keyup', highlightCurrentSelector);
+      textarea.addEventListener('click', highlightCurrentSelector);
+
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.id = 'importantToggle';
@@ -971,7 +1013,6 @@ zoomContainer.addEventListener('dblclick', () => {
       });
       label.insertBefore(checkbox, label.firstChild);
 
-      // Show path checkbox
       const pathCheckbox = document.createElement('input');
       pathCheckbox.type = 'checkbox';
       pathCheckbox.id = 'pathToggle';
@@ -989,7 +1030,6 @@ zoomContainer.addEventListener('dblclick', () => {
       });
       pathLabel.insertBefore(pathCheckbox, pathLabel.firstChild);
 
-      // Path display field
       const pathDisplay = document.createElement('input');
       pathDisplay.type = 'text';
       pathDisplay.readOnly = true;
@@ -1002,7 +1042,6 @@ zoomContainer.addEventListener('dblclick', () => {
         background: '#f9f9f9'
       });
 
-      // Style tag
       const styleTag = document.createElement('style');
       document.head.appendChild(styleTag);
 
@@ -1027,7 +1066,6 @@ zoomContainer.addEventListener('dblclick', () => {
       textarea.addEventListener('input', updateStyles);
       checkbox.addEventListener('change', updateStyles);
 
-      // CSS path builder
       function getCssPath(el) {
         if (!el || el === document || el.nodeType !== 1) return '';
         const path = [];
@@ -1062,12 +1100,9 @@ zoomContainer.addEventListener('dblclick', () => {
         }
       }
 
-
       document.addEventListener('mousemove', e => {
         if (pathCheckbox.checked) {
           const el = e.target;
-          // const path = getCssPath(el);
-          // pathDisplay.value = path;
           highlightElement(el);
         } else if (lastHighlighted) {
           lastHighlighted.style.outline = '';
@@ -1081,10 +1116,9 @@ zoomContainer.addEventListener('dblclick', () => {
           const path = getCssPath(e.target);
           pathDisplay.value = path;
 
-          highlightElement(e.target); // Optional: reinforce highlight
+          highlightElement(e.target);
 
-          const simplifiedPath = simplifySelector(path); // Simplify the selector
-          // Insert selector into textarea if not already present
+          const simplifiedPath = simplifySelector(path);
           if (!textarea.value.includes(simplifiedPath)) {
             const newRule = `${simplifiedPath} {\n  \n}\n\n`;
             textarea.value += newRule;
@@ -1104,24 +1138,20 @@ zoomContainer.addEventListener('dblclick', () => {
       wrapper.appendChild(pathDisplay);
       document.body.appendChild(wrapper);
     }
-  
   });
- 
 })();
 
 function simplifySelector(selector) {
-  selector = " " + selector; // add space to make plain tag name parsing safer
+  selector = " " + selector;
   return selector
-    // Remove :nth-child pseudo-selectors
     .replace(/:nth-child\(\d+\)/g, '')
-    // Remove unnecessary tag names before classes/IDs (e.g., div.class → .class)
     //.replace(/\b\w+(?=\.(\w|-)+)/g, '')
     //.replace(/\b\w+(?=#(\w|-)+)/g, '')
-    // Remove redundant spaces and combinators
-    .replace(/\s*>\s*/g, ' ') // convert child combinators to space
-    .replace(/\s+/g, ' ')     // collapse multiple spaces
+    .replace(/\s*>\s*/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 </script>
+
 </body>
 </html>
