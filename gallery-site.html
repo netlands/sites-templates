@@ -822,6 +822,11 @@ zoomContainer.addEventListener('dblclick', () => {
 </script>
 
 <script>
+
+// Live CSS Editor
+// This script allows you to edit CSS styles live on the page by clicking a link with class "style-editor" while holding Ctrl.
+// It creates a draggable textarea for CSS input, with an option to add !important to rules
+
 (function(){
   // Only activate on Ctrl+Click of .style-editor links
   document.addEventListener('click', function(e) {
