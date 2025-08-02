@@ -825,6 +825,7 @@ zoomContainer.addEventListener('dblclick', () => {
 // This script allows you to edit CSS styles live on the page by clicking any element with class "style-editor" while holding Ctrl.
 // It creates a draggable textarea for CSS input, with an option to add !important to rules
  
+
 (function() {
   // Load Material Symbols font
   const fontLink = document.createElement('link');
@@ -859,7 +860,7 @@ zoomContainer.addEventListener('dblclick', () => {
         gap: '6px'
       });
 
-      // Header bar for close + direction
+      // Header bar
       const header = document.createElement('div');
       Object.assign(header.style, {
         display: 'flex',
@@ -868,14 +869,14 @@ zoomContainer.addEventListener('dblclick', () => {
         marginBottom: '4px'
       });
 
-      // Close button (Material icon)
+      // Close button (black icon)
       const closeBtn = document.createElement('span');
       closeBtn.className = 'material-symbols-outlined';
       closeBtn.innerText = 'close';
       Object.assign(closeBtn.style, {
         fontSize: '20px',
         cursor: 'pointer',
-        color: '#f33'
+        color: '#000'
       });
       closeBtn.title = 'Close';
       closeBtn.addEventListener('click', () => wrapper.remove());
@@ -885,15 +886,15 @@ zoomContainer.addEventListener('dblclick', () => {
       dirIcon.className = 'material-symbols-outlined';
       dirIcon.innerText = 'expand_more';
       dirIcon.title = 'Move position';
-      dirIcon.dataset.dir = 'down';
+      dirIcon.dataset.dir = 'right';
       Object.assign(dirIcon.style, {
         fontSize: '20px',
         transition: 'transform 0.2s ease-in-out',
         cursor: 'pointer',
-        color: '#333'
+        color: '#000'
       });
 
-      const directions = ['down', 'left', 'up', 'right'];
+      const directions = ['right', 'down', 'left', 'up'];
       const rotations = {
         down: 'rotate(0deg)',
         left: 'rotate(90deg)',
@@ -914,6 +915,10 @@ zoomContainer.addEventListener('dblclick', () => {
         });
         dirIcon.style.transform = rotations[dir];
         dirIcon.dataset.dir = dir;
+        // Clear opposite positions
+        ['top', 'right', 'bottom', 'left'].forEach(pos => {
+          if (!(pos in positions[dir])) wrapper.style[pos] = '';
+        });
       }
 
       dirIcon.addEventListener('click', () => {
@@ -921,7 +926,7 @@ zoomContainer.addEventListener('dblclick', () => {
         updatePosition(directions[currentDir]);
       });
 
-      updatePosition(directions[currentDir]); // initial
+      updatePosition(directions[currentDir]); // initial position
 
       // Textarea
       const textarea = document.createElement('textarea');
@@ -962,10 +967,13 @@ zoomContainer.addEventListener('dblclick', () => {
         });
       }
 
-      textarea.addEventListener('input', function() {
+      function updateStyles() {
         const css = textarea.value;
         styleTag.innerHTML = checkbox.checked ? addImportant(css) : css;
-      });
+      }
+
+      textarea.addEventListener('input', updateStyles);
+      checkbox.addEventListener('change', updateStyles);
 
       // Assemble
       header.appendChild(dirIcon);
