@@ -1083,10 +1083,10 @@ zoomContainer.addEventListener('dblclick', () => {
 
           highlightElement(e.target); // Optional: reinforce highlight
 
-          path = simplifySelector(path); // Simplify the selector
+          const simplifiedPath = simplifySelector(path); // Simplify the selector
           // Insert selector into textarea if not already present
-          if (!textarea.value.includes(path)) {
-            const newRule = `${path} {\n  \n}\n\n`;
+          if (!textarea.value.includes(simplifiedPath)) {
+            const newRule = `${simplifiedPath} {\n  \n}\n\n`;
             textarea.value += newRule;
             updateStyles();
           }
