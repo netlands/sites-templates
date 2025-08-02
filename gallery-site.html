@@ -834,7 +834,7 @@ zoomContainer.addEventListener('dblclick', () => {
 
   // Only activate on Ctrl+Click of .style-editor links
   document.addEventListener('click', function(e) {
-    if (e.ctrlKey && e.target.matches('a.style-editor')) {
+    if (e.ctrlKey && e.target.matches('.style-editor')) {
       e.preventDefault();
       if (document.getElementById('liveStyleEditor')) return;
 
