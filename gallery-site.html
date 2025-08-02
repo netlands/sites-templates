@@ -1092,11 +1092,12 @@ zoomContainer.addEventListener('dblclick', () => {
       // Assemble editor
       header.appendChild(dirIcon);
       header.appendChild(closeBtn);
-      wrapper.appendChild(formatBtn);
       wrapper.appendChild(header);
+      wrapper.appendChild(formatBtn);
       wrapper.appendChild(textarea);
       wrapper.appendChild(label);
       wrapper.appendChild(pathLabel);
+      wrapper.appendChild(pathDisplay);      
       document.body.appendChild(wrapper);
     }
   });
