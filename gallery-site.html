@@ -1083,6 +1083,7 @@ zoomContainer.addEventListener('dblclick', () => {
 
           highlightElement(e.target); // Optional: reinforce highlight
 
+          path = simplifySelector(path); // Simplify the selector
           // Insert selector into textarea if not already present
           if (!textarea.value.includes(path)) {
             const newRule = `${path} {\n  \n}\n\n`;
@@ -1105,6 +1106,19 @@ zoomContainer.addEventListener('dblclick', () => {
     }
   });
 })();
+
+function simplifySelector(selector) {
+  return selector
+    // Remove :nth-child pseudo-selectors
+    .replace(/:nth-child\(\d+\)/g, '')
+    // Remove unnecessary tag names before classes/IDs (e.g., div.class → .class)
+    .replace(/\b\w+(?=\.(\w|-)+)/g, '')
+    .replace(/\b\w+(?=#(\w|-)+)/g, '')
+    // Remove redundant spaces and combinators
+    .replace(/\s*>\s*/g, ' ') // convert child combinators to space
+    .replace(/\s+/g, ' ')     // collapse multiple spaces
+    .trim();
+}
 </script>
 </body>
 </html>
