@@ -1008,12 +1008,12 @@ zoomContainer.addEventListener('dblclick', () => {
           return selector.replace(/:nth-child\(\d+\)/g, '').replace(/\s*>\s*/g, ' ').replace(/\s+/g, ' ').trim();
       }
       
-      const hihglightColor = 	"#ebff00"; // radioactive yellow #ebff00 or green #acff00 // old blue #0077ff
+      const highlightColor = 	"#ebff00"; // radioactive yellow #ebff00 or green #acff00 // old blue #0077ff
 
       function highlightElement(el) {
         if (lastHighlighted && lastHighlighted !== el) { lastHighlighted.style.outline = ''; }
         if (el && el !== document.body && el.nodeType === 1 && !wrapper.contains(el)) {
-          el.style.outline = '2px dashed ${hihglightColor}';
+          el.style.outline = '2px dashed' + highglightColor;
           lastHighlighted = el;
         }
       }
