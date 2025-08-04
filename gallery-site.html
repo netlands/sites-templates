@@ -1013,7 +1013,7 @@ zoomContainer.addEventListener('dblclick', () => {
       function highlightElement(el) {
         if (lastHighlighted && lastHighlighted !== el) { lastHighlighted.style.outline = ''; }
         if (el && el !== document.body && el.nodeType === 1 && !wrapper.contains(el)) {
-          el.style.outline = '2px dashed' + highglightColor;
+          el.style.outline = '2px dashed' + highlightColor;
           lastHighlighted = el;
         }
       }
