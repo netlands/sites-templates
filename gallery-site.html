@@ -1011,14 +1011,44 @@ zoomContainer.addEventListener('dblclick', () => {
           const children = [formatBtn, textarea, label, pathLabel, pathDisplay];
           children.forEach(child => { child.style.display = visible ? '' : 'none'; });
       }
+      
+      // MODIFIED: Named functions for event listeners so they can be removed
+      const pathMouseMoveHandler = e => {
+        if (pathCheckbox.checked) {
+          highlightElement(e.target);
+          const path = getCssPath(e.target);
+          const simplifiedPath = simplifySelector(path);
+          pathDisplay.value = simplifiedPath;
+        } else {
+          removeHighlight();
+          pathDisplay.value = '';
+        }
+      };
+
+      const pathClickHandler = function insertPath(e) {
+          if (pathCheckbox.checked && e.ctrlKey && !wrapper.contains(e.target)) {
+              e.preventDefault();
+              const simplifiedPath = simplifySelector(getCssPath(e.target));
+              if (!textarea.value.includes(simplifiedPath)) {
+                  const newRule = `${simplifiedPath} {\n    \n}\n\n`;
+                  textarea.value += newRule;
+                  updateStyles();
+              }
+          }
+      };
 
       // --- EVENT LISTENERS ---
+      // MODIFIED: Added removeEventListener calls to clean up after the editor is closed
       closeBtn.addEventListener('click', () => {
         removeHighlight();
         wrapper.remove();
         styleTag.remove();
+        
+        // Remove the listeners when the editor is closed
+        document.removeEventListener('mousemove', pathMouseMoveHandler);
+        document.removeEventListener('click', pathClickHandler, { capture: true });
       });
-
+      
       minimizeBtn.addEventListener('click', () => {
           if (!isMinimized) {
               const rect = wrapper.getBoundingClientRect();
@@ -1131,31 +1161,9 @@ zoomContainer.addEventListener('dblclick', () => {
         updateStyles();
       });
 
-      // MODIFIED: This mousemove listener now updates the pathDisplay in real-time
-      document.addEventListener('mousemove', e => {
-        if (pathCheckbox.checked) {
-          highlightElement(e.target);
-          const path = getCssPath(e.target);
-          const simplifiedPath = simplifySelector(path);
-          pathDisplay.value = simplifiedPath;
-        } else {
-          removeHighlight();
-          pathDisplay.value = ''; // Clear the path when the feature is off
-        }
-      });
-
-      document.addEventListener('click', function insertPath(e) {
-          if (pathCheckbox.checked && e.ctrlKey && !wrapper.contains(e.target)) {
-              e.preventDefault();
-              const simplifiedPath = simplifySelector(getCssPath(e.target));
-              // We no longer need to update pathDisplay here as mousemove does it
-              if (!textarea.value.includes(simplifiedPath)) {
-                  const newRule = `${simplifiedPath} {\n    \n}\n\n`;
-                  textarea.value += newRule;
-                  updateStyles();
-              }
-          }
-      }, { capture: true });
+      // Add the listeners when the editor is created
+      document.addEventListener('mousemove', pathMouseMoveHandler);
+      document.addEventListener('click', pathClickHandler, { capture: true });
 
       header.addEventListener('mousedown', function(e) {
           if (isDocked || isMinimized) return;
