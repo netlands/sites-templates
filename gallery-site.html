@@ -1010,7 +1010,7 @@ zoomContainer.addEventListener('dblclick', () => {
           return selector.replace(/:nth-child\(\d+\)/g, '').replace(/\s*>\s*/g, ' ').replace(/\s+/g, ' ').trim();
       }
       
-      const highlightColor = "#0077ff"; // blue // radioactive yellow #ebff00 or green #acff00 // 
+      const highlightColor = "#ebff00"; // radioactive yellow #ebff00 or green #acff00 // old blue #0077ff
 
       function highlightElement(el) {
         if (lastHighlighted && lastHighlighted !== el) { lastHighlighted.style.outline = ''; }
@@ -1269,6 +1269,9 @@ zoomContainer.addEventListener('dblclick', () => {
                 transition: 'left 0.3s ease, right 0.3s ease'
             });
 
+            // Hide minimize button when docked
+            minimizeBtn.style.display = 'none';
+
             dockBtn.innerText = 'side_navigation';
             dockBtn.title = 'Undock';
             dockBtn.style.transform = dockToLeft ? 'scaleX(-1)' : 'scaleX(1)';
@@ -1282,6 +1285,10 @@ zoomContainer.addEventListener('dblclick', () => {
                 resize: 'both', borderRadius: '8px',
                 transition: 'width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease'
             });
+
+            // Show minimize button when undocked
+            minimizeBtn.style.display = '';
+            
             dockBtn.innerText = 'side_navigation';
             dockBtn.title = 'Dock to side';
             // Update icon orientation based on current undocked position
@@ -1393,8 +1400,8 @@ zoomContainer.addEventListener('dblclick', () => {
     }
   });
 })();
-// v1.0.0
 </script>
+
 
 
 </body>
