@@ -818,506 +818,583 @@ zoomContainer.addEventListener('dblclick', () => {
 });
 });
 </script>
+
 <script>
 // Live CSS Editor
 // Ctrl + Click any element with class "style-editor" to open the editor
 
 (function() {
-  // Load Material Symbols font
-  const fontLink = document.createElement('link');
-  fontLink.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined';
-  fontLink.rel = 'stylesheet';
-  document.head.appendChild(fontLink);
+  // Load Material Symbols font
+  const fontLink = document.createElement('link');
+  fontLink.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined';
+  fontLink.rel = 'stylesheet';
+  document.head.appendChild(fontLink);
 
-  document.addEventListener('click', function(e) {
-    if (e.ctrlKey && e.target.matches('.style-editor')) {
-      e.preventDefault();
-      if (document.getElementById('liveStyleEditor')) return;
+  document.addEventListener('click', function(e) {
+    if (e.ctrlKey && e.target.matches('.style-editor')) {
+      e.preventDefault();
+      if (document.getElementById('liveStyleEditor')) return;
 
-      // --- STATE VARIABLES ---
-      let isMinimized = false;
-      let isDocked = false;
-      let originalDimensions = {}; // For docking
-      let preMinimizeDimensions = {}; // For minimizing
-      let dockToLeft = false; // Tracks which side the dialog is docked to
+      // --- STATE VARIABLES ---
+      let isMinimized = false;
+      let isDocked = false;
+      let originalDimensions = {}; // For docking
+      let preMinimizeDimensions = {}; // For minimizing
+      let dockToLeft = false; // Tracks which side the dialog is docked to
+      let lastHighlighted = null; // For the yellow highlight on mouseover
+      let lastActiveHighlighted = null; // NEW: For the red highlight on text input
 
-      // --- CREATE UI ELEMENTS ---
+      // --- CREATE UI ELEMENTS ---
 
-      // Create wrapper
-      const wrapper = document.createElement('div');
-      wrapper.id = 'liveStyleEditor';
-      Object.assign(wrapper.style, {
-        position: 'fixed',
-        top: '40px',
-        right: '10px',
-        width: '400px',
-        height: '350px',
-        zIndex: 9999,
-        background: '#fff',
-        border: '1px solid #ccc',
-        borderRadius: '8px',
-        padding: '10px',
-        fontFamily: 'monospace',
-        resize: 'both',
-        overflow: 'hidden',
-        boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        transition: 'width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease'
-      });
+      // Create wrapper
+      const wrapper = document.createElement('div');
+      wrapper.id = 'liveStyleEditor';
+      Object.assign(wrapper.style, {
+        position: 'fixed',
+        top: '40px',
+        right: '10px',
+        width: '400px',
+        height: '350px',
+        zIndex: 9999,
+        background: '#fff',
+        border: '1px solid #ccc',
+        borderRadius: '8px',
+        padding: '10px',
+        fontFamily: 'monospace',
+        resize: 'both',
+        overflow: 'hidden',
+        boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        transition: 'width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease'
+      });
 
-      // Header bar
-      const header = document.createElement('div');
-      Object.assign(header.style, {
-        display: 'flex',
-        justifyContent: 'flex-end',
-        gap: '8px',
-        marginBottom: '4px',
-        cursor: 'move',
-        userSelect: 'none'
-      });
-      
-      // --- HEADER BUTTONS ---
+      // Header bar
+      const header = document.createElement('div');
+      Object.assign(header.style, {
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: '8px',
+        marginBottom: '4px',
+        cursor: 'move',
+        userSelect: 'none'
+      });
+      
+      // --- HEADER BUTTONS ---
 
-      const minimizeBtn = document.createElement('span');
-      minimizeBtn.className = 'material-symbols-outlined';
-      minimizeBtn.innerText = 'minimize';
-      minimizeBtn.title = 'Minimize';
-      Object.assign(minimizeBtn.style, { fontSize: '20px', cursor: 'pointer', color: '#000' });
+      const minimizeBtn = document.createElement('span');
+      minimizeBtn.className = 'material-symbols-outlined';
+      minimizeBtn.innerText = 'minimize';
+      minimizeBtn.title = 'Minimize';
+      Object.assign(minimizeBtn.style, { fontSize: '20px', cursor: 'pointer', color: '#000' });
 
-      const dockBtn = document.createElement('span');
-      dockBtn.className = 'material-symbols-outlined';
-      dockBtn.innerText = 'side_navigation';
-      dockBtn.title = 'Dock to side';
-      Object.assign(dockBtn.style, { fontSize: '20px', cursor: 'pointer', color: '#000', transition: 'transform 0.3s ease' });
-      
-      const dirIcon = document.createElement('span');
-      dirIcon.className = 'material-symbols-outlined';
-      dirIcon.innerText = 'dropdown';
-      dirIcon.title = 'Move to corner';
-      Object.assign(dirIcon.style, {
-          fontSize: '20px',
-          cursor: 'pointer',
-          color: '#000',
-          transition: 'transform 0.3s ease'
-      });
-      
-      const closeBtn = document.createElement('span');
-      closeBtn.className = 'material-symbols-outlined';
-      closeBtn.innerText = 'close';
-      closeBtn.title = 'Close';
-      Object.assign(closeBtn.style, { fontSize: '20px', cursor: 'pointer', color: '#000' });
+      const dockBtn = document.createElement('span');
+      dockBtn.className = 'material-symbols-outlined';
+      dockBtn.innerText = 'side_navigation';
+      dockBtn.title = 'Dock to side';
+      Object.assign(dockBtn.style, { fontSize: '20px', cursor: 'pointer', color: '#000', transition: 'transform 0.3s ease' });
+      
+      const dirIcon = document.createElement('span');
+      dirIcon.className = 'material-symbols-outlined';
+      dirIcon.innerText = 'dropdown';
+      dirIcon.title = 'Move to corner';
+      Object.assign(dirIcon.style, {
+          fontSize: '20px',
+          cursor: 'pointer',
+          color: '#000',
+          transition: 'transform 0.3s ease'
+      });
+      
+      const closeBtn = document.createElement('span');
+      closeBtn.className = 'material-symbols-outlined';
+      closeBtn.innerText = 'close';
+      closeBtn.title = 'Close';
+      Object.assign(closeBtn.style, { fontSize: '20px', cursor: 'pointer', color: '#000' });
 
-      // --- OTHER UI ELEMENTS ---
-      const textarea = document.createElement('textarea');
-      textarea.style.flex = '1';
-      textarea.placeholder = 'Type CSS here...';
-      Object.assign(textarea.style, { borderRadius: '4px', border: '1px solid #ccc' });
+      // --- OTHER UI ELEMENTS ---
+      const textarea = document.createElement('textarea');
+      textarea.style.flex = '1';
+      textarea.placeholder = 'Type CSS here...';
+      Object.assign(textarea.style, { borderRadius: '4px', border: '1px solid #ccc' });
 
-      const controlsRow = document.createElement('div');
-      Object.assign(controlsRow.style, { display: 'flex', alignItems: 'center', justifyContent: 'space-between' });
+      const controlsRow = document.createElement('div');
+      Object.assign(controlsRow.style, { display: 'flex', alignItems: 'center', justifyContent: 'space-between' });
 
-      const formatBtn = document.createElement('button');
-      formatBtn.innerText = 'Format CSS';
-      Object.assign(formatBtn.style, {
-        fontSize: '12px', padding: '4px 8px', cursor: 'pointer',
-        fontFamily: 'monospace', border: '1px solid #ccc', borderRadius: '4px', background: '#f0f0f0'
-      });
-      
-      const pinCheckbox = document.createElement('input');
-      pinCheckbox.type = 'checkbox';
-      pinCheckbox.id = 'pinToggle';
-      const pinLabel = document.createElement('label');
-      pinLabel.htmlFor = 'pinToggle';
-      pinLabel.innerText = ' Pin CSS';
-      Object.assign(pinLabel.style, { display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '14px', cursor: 'pointer' });
-      pinLabel.insertBefore(pinCheckbox, pinLabel.firstChild);
+      const formatBtn = document.createElement('button');
+      formatBtn.innerText = 'Format CSS';
+      Object.assign(formatBtn.style, {
+        fontSize: '12px', padding: '4px 8px', cursor: 'pointer',
+        fontFamily: 'monospace', border: '1px solid #ccc', borderRadius: '4px', background: '#f0f0f0'
+      });
+      
+      const pinCheckbox = document.createElement('input');
+      pinCheckbox.type = 'checkbox';
+      pinCheckbox.id = 'pinToggle';
+      const pinLabel = document.createElement('label');
+      pinLabel.htmlFor = 'pinToggle';
+      pinLabel.innerText = ' Pin CSS';
+      Object.assign(pinLabel.style, { display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '14px', cursor: 'pointer' });
+      pinLabel.insertBefore(pinCheckbox, pinLabel.firstChild);
 
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.id = 'importantToggle';
-      const label = document.createElement('label');
-      label.htmlFor = 'importantToggle';
-      label.innerText = ' !important';
-      Object.assign(label.style, { display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '14px', cursor: 'pointer' });
-      label.insertBefore(checkbox, label.firstChild);
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = 'importantToggle';
+      const label = document.createElement('label');
+      label.htmlFor = 'importantToggle';
+      label.innerText = ' !important';
+      Object.assign(label.style, { display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '14px', cursor: 'pointer' });
+      label.insertBefore(checkbox, label.firstChild);
 
-      const pathCheckbox = document.createElement('input');
-      pathCheckbox.type = 'checkbox';
-      pathCheckbox.id = 'pathToggle';
-      const pathLabel = document.createElement('label');
-      pathLabel.htmlFor = 'pathToggle';
-      pathLabel.innerText = ' Show path under cursor (Ctrl+click to insert)';
-      Object.assign(pathLabel.style, { display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '14px', cursor: 'pointer' });
-      pathLabel.insertBefore(pathCheckbox, pathLabel.firstChild);
+      const pathCheckbox = document.createElement('input');
+      pathCheckbox.type = 'checkbox';
+      pathCheckbox.id = 'pathToggle';
+      const pathLabel = document.createElement('label');
+      pathLabel.htmlFor = 'pathToggle';
+      pathLabel.innerText = ' Show path under cursor (Ctrl+click to insert)';
+      Object.assign(pathLabel.style, { display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '14px', cursor: 'pointer' });
+      pathLabel.insertBefore(pathCheckbox, pathLabel.firstChild);
 
-      const pathDisplay = document.createElement('input');
-      pathDisplay.type = 'text';
-      pathDisplay.readOnly = true;
-      Object.assign(pathDisplay.style, {
-        width: '100%', fontSize: '12px', fontFamily: 'monospace', padding: '4px',
-        border: '1px solid #ccc', background: '#f9f9f9', boxSizing: 'border-box', borderRadius: '4px'
-      });
+      const pathDisplay = document.createElement('input');
+      pathDisplay.type = 'text';
+      pathDisplay.readOnly = true;
+      Object.assign(pathDisplay.style, {
+        width: '100%', fontSize: '12px', fontFamily: 'monospace', padding: '4px',
+        border: '1px solid #ccc', background: '#f9f9f9', boxSizing: 'border-box', borderRadius: '4px'
+      });
 
-      const styleTag = document.createElement('style');
-      document.head.appendChild(styleTag);
-      
-      let lastHighlighted = null;
+      const styleTag = document.createElement('style');
+      document.head.appendChild(styleTag);
+      
 
-      // --- FUNCTIONS ---
-      function updateStyles() {
-        const css = textarea.value;
-        styleTag.innerHTML = checkbox.checked ? addImportant(css) : css;
-      }
+      // --- FUNCTIONS ---
+      function updateStyles() {
+        const css = textarea.value;
+        styleTag.innerHTML = checkbox.checked ? addImportant(css) : css;
+      }
 
-      function addImportant(css) {
-        return css.replace(/([^{}]+){([^}]+)}/g, function(_, selector, rules) {
-          var importantRules = rules.split(';').map(rule => {
-              if (!rule.trim()) return '';
-              return rule.includes('!important') ? rule : rule.trim() + ' !important';
-            }).join(';');
-          return selector + '{' + importantRules + '}';
-        });
-      }
+      function addImportant(css) {
+        return css.replace(/([^{}]+){([^}]+)}/g, function(_, selector, rules) {
+          var importantRules = rules.split(';').map(rule => {
+              if (!rule.trim()) return '';
+              return rule.includes('!important') ? rule : rule.trim() + ' !important';
+            }).join(';');
+          return selector + '{' + importantRules + '}';
+        });
+      }
 
-      function formatCSS(css) {
-        return css.replace(/\s*{\s*/g, ' {\n    ').replace(/;\s*/g, ';\n    ').replace(/\s*}\s*/g, '\n}\n\n').replace(/\n\s*\n/g, '\n').trim();
-      }
-      
-      function getCssPath(el) {
-        if (!el || el === document || el.nodeType !== 1) return '';
-        const path = [];
-        while (el && el.nodeType === 1 && el !== document.body) {
-          let selector = el.tagName.toLowerCase();
-          if (el.id) { selector += `#${el.id}`; path.unshift(selector); break; }
-          if (el.className) {
-            const classes = el.className.trim().split(/\s+/).join('.');
-            if(classes) selector += `.${classes}`;
+      function formatCSS(css) {
+        return css.replace(/\s*{\s*/g, ' {\n    ').replace(/;\s*/g, ';\n    ').replace(/\s*}\s*/g, '\n}\n\n').replace(/\n\s*\n/g, '\n').trim();
+      }
+      
+      function getCssPath(el) {
+        if (!el || el === document || el.nodeType !== 1) return '';
+        const path = [];
+        while (el && el.nodeType === 1 && el !== document.body) {
+          let selector = el.tagName.toLowerCase();
+          if (el.id) { selector += `#${el.id}`; path.unshift(selector); break; }
+          if (el.className) {
+            const classes = el.className.trim().split(/\s+/).join('.');
+            if(classes) selector += `.${classes}`;
+          }
+          const siblingIndex = Array.from(el.parentNode.children).indexOf(el) + 1;
+          selector += `:nth-child(${siblingIndex})`;
+          path.unshift(selector);
+          el = el.parentNode;
+        }
+        return path.join(' > ');
+      }
+
+      function simplifySelector(selector) {
+          selector = " " + selector; 
+          return selector.replace(/:nth-child\(\d+\)/g, '').replace(/\s*>\s*/g, ' ').replace(/\s+/g, ' ').trim();
+      }
+      
+      const highlightColor = "#ebff00"; // radioactive yellow #ebff00 or green #acff00 // old blue #0077ff
+
+      function highlightElement(el) {
+        if (lastHighlighted && lastHighlighted !== el) { lastHighlighted.style.outline = ''; }
+        if (el && el !== document.body && el.nodeType === 1 && !wrapper.contains(el)) {
+          el.style.outline = '2px dashed' + highlightColor;
+          lastHighlighted = el;
+        }
+      }
+
+      function removeHighlight() {
+          if (lastHighlighted) { lastHighlighted.style.outline = ''; lastHighlighted = null; }
+      }
+      
+      // NEW: Functions for the red highlight
+      function highlightActiveSelector() {
+          if (!pathCheckbox.checked) {
+              removeActiveHighlight();
+              return;
           }
-          const siblingIndex = Array.from(el.parentNode.children).indexOf(el) + 1;
-          selector += `:nth-child(${siblingIndex})`;
-          path.unshift(selector);
-          el = el.parentNode;
-        }
-        return path.join(' > ');
-      }
-
-      function simplifySelector(selector) {
-          selector = " " + selector; 
-          return selector.replace(/:nth-child\(\d+\)/g, '').replace(/\s*>\s*/g, ' ').replace(/\s+/g, ' ').trim();
-      }
+          const text = textarea.value;
+          const cursorPosition = textarea.selectionStart;
       
-      const highlightColor = "#ebff00"; // radioactive yellow #ebff00 or green #acff00 // old blue #0077ff
-
-      function highlightElement(el) {
-        if (lastHighlighted && lastHighlighted !== el) { lastHighlighted.style.outline = ''; }
-        if (el && el !== document.body && el.nodeType === 1 && !wrapper.contains(el)) {
-          el.style.outline = '2px dashed' + highlightColor;
-          lastHighlighted = el;
-        }
-      }
-
-      function removeHighlight() {
-          if (lastHighlighted) { lastHighlighted.style.outline = ''; lastHighlighted = null; }
-      }
+          // A simple regex to find the selector associated with the current cursor position
+          const rulesRegex = /([^{}]+)\s*\{([^}]*)\}/g;
+          let match;
+          let activeSelector = null;
       
-      function setDialogContentVisibility(visible) {
-          const children = [formatBtn, textarea, label, pathLabel, pathDisplay, pinLabel];
-          children.forEach(child => { child.style.display = visible ? '' : 'none'; });
-      }
-
-      // NEW: Function to update dock icon based on dialog's current position
-      function updateDockIconOrientation() {
-        if (!isDocked && !isMinimized) {
-          const rect = wrapper.getBoundingClientRect();
-          // Check if the left edge is in the left half of the screen
-          dockToLeft = rect.left < (window.innerWidth / 2);
-          dockBtn.style.transform = dockToLeft ? 'scaleX(-1)' : 'scaleX(1)';
-        }
-      }
-
-      // --- LOCAL STORAGE FUNCTIONS ---
-      function loadPinnedCss() {
-          const pinned = localStorage.getItem('liveCssPinned');
-          const content = localStorage.getItem('liveCssContent');
-          if (pinned === 'true' && content) {
-              pinCheckbox.checked = true;
-              textarea.value = content;
-              updateStyles();
-          }
-      }
-
-      function togglePinCss() {
-          if (pinCheckbox.checked) {
-              localStorage.setItem('liveCssPinned', 'true');
-              localStorage.setItem('liveCssContent', textarea.value);
-          } else {
-              localStorage.removeItem('liveCssPinned');
-              localStorage.removeItem('liveCssContent');
-          }
-      }
-
-      function saveCssIfPinned() {
-          if (pinCheckbox.checked) {
-              localStorage.setItem('liveCssContent', textarea.value);
-          }
-      }
+          while ((match = rulesRegex.exec(text)) !== null) {
+              const selectorStart = match.index;
+              const rulesEnd = match.index + match[0].length;
       
-      // MODIFIED: Named functions for event listeners so they can be removed
-      const pathMouseMoveHandler = e => {
-        if (pathCheckbox.checked) {
-          highlightElement(e.target);
-          const path = getCssPath(e.target);
-          const simplifiedPath = simplifySelector(path);
-          pathDisplay.value = simplifiedPath;
-        } else {
-          removeHighlight();
-          pathDisplay.value = '';
-        }
-      };
-
-      const pathClickHandler = function insertPath(e) {
-          if (pathCheckbox.checked && e.ctrlKey && !wrapper.contains(e.target)) {
-              e.preventDefault();
-              const simplifiedPath = simplifySelector(getCssPath(e.target));
-              if (!textarea.value.includes(simplifiedPath)) {
-                const newRule = `${simplifiedPath} {\n    \n}\n\n`;
-                textarea.value += newRule;
-                updateStyles();
+              if (cursorPosition >= selectorStart && cursorPosition <= rulesEnd) {
+                  activeSelector = match[1].trim();
+                  break;
               }
           }
-      };
       
-      // UPDATED: New handlers for the auto-hide feature
-      const handleMouseOut = (e) => {
-          if (e.relatedTarget && wrapper.contains(e.relatedTarget)) {
-              return; // Mouse moved to a child element, don't hide.
-          }
-          if (isDocked) {
-              if (dockToLeft) {
-                  wrapper.style.left = '-396px'; // Hide, leaving 4px visible
-              } else {
-                  wrapper.style.right = '-396px'; // Hide, leaving 4px visible
+          if (activeSelector) {
+              try {
+                  const el = document.querySelector(activeSelector);
+                  if (el) {
+                      if (lastActiveHighlighted && lastActiveHighlighted !== el) {
+                          lastActiveHighlighted.style.outline = '';
+                      }
+                      el.style.outline = '2px dotted red';
+                      lastActiveHighlighted = el;
+                      return;
+                  }
+              } catch (e) {
+                  // Ignore invalid selectors
               }
           }
-      };
-      
-      const handleMouseOver = () => {
-          if (isDocked) {
-              if (dockToLeft) {
-                  wrapper.style.left = '0px'; // Show
-              } else {
-                  wrapper.style.right = '0px'; // Show
-              }
+          removeActiveHighlight();
+      }
+
+      function removeActiveHighlight() {
+          if (lastActiveHighlighted) {
+              lastActiveHighlighted.style.outline = '';
+              lastActiveHighlighted = null;
           }
-      };
-      
-      // --- EVENT LISTENERS ---
-      closeBtn.addEventListener('click', () => {
-        // Clear local storage ONLY if the user has not pinned the CSS
-        if (!pinCheckbox.checked) {
-            localStorage.removeItem('liveCssPinned');
-            localStorage.removeItem('liveCssContent');
+      }
+      
+      function setDialogContentVisibility(visible) {
+          const children = [formatBtn, textarea, label, pathLabel, pathDisplay, pinLabel];
+          children.forEach(child => { child.style.display = visible ? '' : 'none'; });
+      }
+
+      // NEW: Function to update dock icon based on dialog's current position
+      function updateDockIconOrientation() {
+        if (!isDocked && !isMinimized) {
+          const rect = wrapper.getBoundingClientRect();
+          // Check if the left edge is in the left half of the screen
+          dockToLeft = rect.left < (window.innerWidth / 2);
+          dockBtn.style.transform = dockToLeft ? 'scaleX(-1)' : 'scaleX(1)';
+        }
+      }
+
+      // --- LOCAL STORAGE FUNCTIONS ---
+      function loadPinnedCss() {
+          const pinned = localStorage.getItem('liveCssPinned');
+          const content = localStorage.getItem('liveCssContent');
+          if (pinned === 'true' && content) {
+              pinCheckbox.checked = true;
+              textarea.value = content;
+              updateStyles();
+          }
+      }
+
+      function togglePinCss() {
+          if (pinCheckbox.checked) {
+              localStorage.setItem('liveCssPinned', 'true');
+              localStorage.setItem('liveCssContent', textarea.value);
+          } else {
+              localStorage.removeItem('liveCssPinned');
+              localStorage.removeItem('liveCssContent');
+          }
+      }
+
+      function saveCssIfPinned() {
+          if (pinCheckbox.checked) {
+              localStorage.setItem('liveCssContent', textarea.value);
+          }
+      }
+      
+      // MODIFIED: Named functions for event listeners so they can be removed
+      const pathMouseMoveHandler = e => {
+        // Only highlight if the mouse is outside the editor wrapper
+        if (!wrapper.contains(e.target) && pathCheckbox.checked) {
+            removeActiveHighlight(); // Remove red highlight
+            highlightElement(e.target);
+            const path = getCssPath(e.target);
+            const simplifiedPath = simplifySelector(path);
+            pathDisplay.value = simplifiedPath;
+        } else if (wrapper.contains(e.target) && lastHighlighted) {
+            // If mouse moves into the editor, remove yellow highlight
+            removeHighlight();
+        } else if (!pathCheckbox.checked) {
+            // If checkbox is unchecked, ensure no highlights are visible
+            removeHighlight();
+            removeActiveHighlight();
+            pathDisplay.value = '';
         }
-        removeHighlight();
-        wrapper.remove();
-        styleTag.remove();
+      };
+
+      const pathClickHandler = function insertPath(e) {
+          if (pathCheckbox.checked && e.ctrlKey && !wrapper.contains(e.target)) {
+              e.preventDefault();
+              const simplifiedPath = simplifySelector(getCssPath(e.target));
+              if (!textarea.value.includes(simplifiedPath)) {
+                const newRule = `${simplifiedPath} {\n    \n}\n\n`;
+                textarea.value += newRule;
+                updateStyles();
+              }
+          }
+      };
+      
+      // UPDATED: New handlers for the auto-hide feature
+      const handleMouseOut = (e) => {
+          if (e.relatedTarget && wrapper.contains(e.relatedTarget)) {
+              return; // Mouse moved to a child element, don't hide.
+          }
+          if (isDocked) {
+              if (dockToLeft) {
+                  wrapper.style.left = '-396px'; // Hide, leaving 4px visible
+              } else {
+                  wrapper.style.right = '-396px'; // Hide, leaving 4px visible
+              }
+          }
+      };
+      
+      const handleMouseOver = () => {
+          if (isDocked) {
+              if (dockToLeft) {
+                  wrapper.style.left = '0px'; // Show
+              } else {
+                  wrapper.style.right = '0px'; // Show
+              }
+          }
+      };
+      
+      // --- EVENT LISTENERS ---
+      closeBtn.addEventListener('click', () => {
+        // Clear local storage ONLY if the user has not pinned the CSS
+        if (!pinCheckbox.checked) {
+            localStorage.removeItem('liveCssPinned');
+            localStorage.removeItem('liveCssContent');
+        }
+        removeHighlight();
+        removeActiveHighlight();
+        wrapper.remove();
+        styleTag.remove();
+        
+        // Remove the listeners when the editor is closed
+        document.removeEventListener('mousemove', pathMouseMoveHandler);
+        document.removeEventListener('click', pathClickHandler, { capture: true });
+        
+        // Remove auto-hide listeners
+        wrapper.removeEventListener('mouseover', handleMouseOver);
+        wrapper.removeEventListener('mouseout', handleMouseOut);
         
-        // Remove the listeners when the editor is closed
-        document.removeEventListener('mousemove', pathMouseMoveHandler);
-        document.removeEventListener('click', pathClickHandler, { capture: true });
-        
-        // Remove auto-hide listeners
-        wrapper.removeEventListener('mouseover', handleMouseOver);
-        wrapper.removeEventListener('mouseout', handleMouseOut);
-      });
-      
-      minimizeBtn.addEventListener('click', () => {
-          if (!isMinimized) {
-              const rect = wrapper.getBoundingClientRect();
-              preMinimizeDimensions = {
-                top: `${rect.top}px`, left: `${rect.left}px`,
-                width: `${rect.width}px`, height: `${rect.height}px`
-              };
+        // Remove new listeners for red highlighting
+        textarea.removeEventListener('input', highlightActiveSelector);
+        textarea.removeEventListener('click', highlightActiveSelector);
+        textarea.removeEventListener('blur', removeActiveHighlight);
+        pathCheckbox.removeEventListener('change', removeActiveHighlight);
+      });
+      
+      minimizeBtn.addEventListener('click', () => {
+          if (!isMinimized) {
+              const rect = wrapper.getBoundingClientRect();
+              preMinimizeDimensions = {
+                top: `${rect.top}px`, left: `${rect.left}px`,
+                width: `${rect.width}px`, height: `${rect.height}px`
+              };
+          }
+
+          isMinimized = !isMinimized;
+          
+          setDialogContentVisibility(!isMinimized);
+          wrapper.style.resize = isMinimized ? 'none' : 'both';
+          minimizeBtn.innerText = isMinimized ? 'crop_square' : 'minimize';
+          minimizeBtn.title = isMinimized ? 'Maximize' : 'Minimize';
+
+          if (isMinimized) {
+              wrapper.style.height = 'auto';
+              wrapper.style.width = 'auto';
+
+              const rect = {
+                  top: parseFloat(preMinimizeDimensions.top), left: parseFloat(preMinimizeDimensions.left),
+                  bottom: parseFloat(preMinimizeDimensions.top) + parseFloat(preMinimizeDimensions.height),
+                  right: parseFloat(preMinimizeDimensions.left) + parseFloat(preMinimizeDimensions.width)
+              };
+
+              const dist = {
+                  top: rect.top, bottom: window.innerHeight - rect.bottom,
+                  left: rect.left, right: window.innerWidth - rect.right
+              };
+
+              const closestEdge = Object.keys(dist).reduce((a, b) => dist[a] < dist[b] ? a : b);
+              
+              wrapper.style.top = wrapper.style.bottom = wrapper.style.left = wrapper.style.right = '';
+
+              switch (closestEdge) {
+                  case 'top':     wrapper.style.top = '0px'; wrapper.style.left = preMinimizeDimensions.left; break;
+                  case 'bottom':  wrapper.style.bottom = '0px'; wrapper.style.left = preMinimizeDimensions.left; break;
+                  case 'left':    wrapper.style.left = '0px'; wrapper.style.top = preMinimizeDimensions.top; break;
+                  case 'right':   wrapper.style.right = '0px'; wrapper.style.top = preMinimizeDimensions.top; break;
+              }
+          } else {
+              Object.assign(wrapper.style, {
+                  ...preMinimizeDimensions,
+                  right: '', bottom: ''
+              });
+          }
+      });
+      
+      dockBtn.addEventListener('click', () => {
+        if (isMinimized) {
+            minimizeBtn.click(); // Maximize before docking
+        }
+
+        isDocked = !isDocked;
+        if (isDocked) {
+            const rect = wrapper.getBoundingClientRect();
+            originalDimensions = {
+                top: `${rect.top}px`, left: `${rect.left}px`,
+                width: `${rect.width}px`, height: `${rect.height}px`
+            };
+            
+            // Note: dockToLeft is already set by updateDockIconOrientation
+            
+            Object.assign(wrapper.style, {
+                top: '0px', left: dockToLeft ? '0px' : '', right: dockToLeft ? '' : '0px',
+                bottom: '0px', width: '400px', height: '100vh',
+                resize: 'none', borderRadius: '0',
+                transition: 'left 0.3s ease, right 0.3s ease'
+            });
+
+            dockBtn.innerText = 'side_navigation';
+            dockBtn.title = 'Undock';
+            dockBtn.style.transform = dockToLeft ? 'scaleX(-1)' : 'scaleX(1)';
+
+            // Add the auto-hide listeners
+            wrapper.addEventListener('mouseover', handleMouseOver);
+            wrapper.addEventListener('mouseout', handleMouseOut);
+        } else {
+            Object.assign(wrapper.style, {
+                ...originalDimensions,
+                resize: 'both', borderRadius: '8px',
+                transition: 'width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease'
+            });
+            dockBtn.innerText = 'side_navigation';
+            dockBtn.title = 'Dock to side';
+            // Update icon orientation based on current undocked position
+            updateDockIconOrientation();
+            
+            // Remove the auto-hide listeners
+            wrapper.removeEventListener('mouseover', handleMouseOver);
+            wrapper.removeEventListener('mouseout', handleMouseOut);
+        }
+      });
+
+      const cornerPositions = {
+        'top-right':    { top: '10px', right: '10px', bottom: '',  left: '',  transform: 'rotate(90deg)' },
+        'bottom-right': { top: '',    right: '10px', bottom: '10px', left: '',  transform: 'rotate(180deg)' },
+        'bottom-left':  { top: '',    right: '',    bottom: '10px', left: '10px', transform: 'rotate(-90deg)' },
+        'top-left':     { top: '10px', right: '',    bottom: '',  left: '10px', transform: 'rotate(0deg)' }
+      };
+      const cornerKeys = Object.keys(cornerPositions);
+      let currentCornerIndex = 0;
+      dirIcon.style.transform = cornerPositions[cornerKeys[currentCornerIndex]].transform;
+
+      dirIcon.addEventListener('click', () => {
+          if (isDocked) { dockBtn.click(); }
+          if (isMinimized) { minimizeBtn.click(); }
+          
+          currentCornerIndex = (currentCornerIndex + 1) % cornerKeys.length;
+          const newPosition = cornerPositions[cornerKeys[currentCornerIndex]];
+
+          Object.assign(wrapper.style, {
+              top: newPosition.top, right: newPosition.right,
+              bottom: newPosition.bottom, left: newPosition.left
+          });
+          dirIcon.style.transform = newPosition.transform;
+          updateDockIconOrientation(); // NEW: Update icon orientation after corner move
+      });
+
+      // --- NEW EVENT LISTENERS FOR LOCAL STORAGE ---
+      textarea.addEventListener('input', () => {
+        updateStyles();
+        saveCssIfPinned();
+        highlightActiveSelector(); // NEW: Highlight element on input
+      });
+      checkbox.addEventListener('change', updateStyles);
+      formatBtn.addEventListener('click', () => {
+        textarea.value = formatCSS(textarea.value);
+        updateStyles();
+        saveCssIfPinned();
+      });
+      pinCheckbox.addEventListener('change', togglePinCss);
+
+      // NEW: Add a listener to remove the red highlight when the text area loses focus
+      textarea.addEventListener('blur', removeActiveHighlight);
+      // NEW: Add a listener to update the red highlight on cursor movement
+      textarea.addEventListener('click', highlightActiveSelector);
+      // NEW: Add a listener to remove the red highlight if the checkbox is unchecked
+      pathCheckbox.addEventListener('change', () => {
+          if (!pathCheckbox.checked) {
+              removeActiveHighlight();
           }
-
-          isMinimized = !isMinimized;
-          
-          setDialogContentVisibility(!isMinimized);
-          wrapper.style.resize = isMinimized ? 'none' : 'both';
-          minimizeBtn.innerText = isMinimized ? 'crop_square' : 'minimize';
-          minimizeBtn.title = isMinimized ? 'Maximize' : 'Minimize';
-
-          if (isMinimized) {
-              wrapper.style.height = 'auto';
-              wrapper.style.width = 'auto';
-
-              const rect = {
-                  top: parseFloat(preMinimizeDimensions.top), left: parseFloat(preMinimizeDimensions.left),
-                  bottom: parseFloat(preMinimizeDimensions.top) + parseFloat(preMinimizeDimensions.height),
-                  right: parseFloat(preMinimizeDimensions.left) + parseFloat(preMinimizeDimensions.width)
-              };
-
-              const dist = {
-                  top: rect.top, bottom: window.innerHeight - rect.bottom,
-                  left: rect.left, right: window.innerWidth - rect.right
-              };
-
-              const closestEdge = Object.keys(dist).reduce((a, b) => dist[a] < dist[b] ? a : b);
-              
-              wrapper.style.top = wrapper.style.bottom = wrapper.style.left = wrapper.style.right = '';
-
-              switch (closestEdge) {
-                  case 'top':     wrapper.style.top = '0px'; wrapper.style.left = preMinimizeDimensions.left; break;
-                  case 'bottom':  wrapper.style.bottom = '0px'; wrapper.style.left = preMinimizeDimensions.left; break;
-                  case 'left':    wrapper.style.left = '0px'; wrapper.style.top = preMinimizeDimensions.top; break;
-                  case 'right':   wrapper.style.right = '0px'; wrapper.style.top = preMinimizeDimensions.top; break;
-              }
-          } else {
-              Object.assign(wrapper.style, {
-                  ...preMinimizeDimensions,
-                  right: '', bottom: ''
-              });
-          }
-      });
-      
-      dockBtn.addEventListener('click', () => {
-        if (isMinimized) {
-            minimizeBtn.click(); // Maximize before docking
-        }
-
-        isDocked = !isDocked;
-        if (isDocked) {
-            const rect = wrapper.getBoundingClientRect();
-            originalDimensions = {
-                top: `${rect.top}px`, left: `${rect.left}px`,
-                width: `${rect.width}px`, height: `${rect.height}px`
-            };
-            
-            // Note: dockToLeft is already set by updateDockIconOrientation
-            
-            Object.assign(wrapper.style, {
-                top: '0px', left: dockToLeft ? '0px' : '', right: dockToLeft ? '' : '0px',
-                bottom: '0px', width: '400px', height: '100vh',
-                resize: 'none', borderRadius: '0',
-                transition: 'left 0.3s ease, right 0.3s ease'
-            });
-
-            dockBtn.innerText = 'side_navigation';
-            dockBtn.title = 'Undock';
-            dockBtn.style.transform = dockToLeft ? 'scaleX(-1)' : 'scaleX(1)';
-
-            // Add the auto-hide listeners
-            wrapper.addEventListener('mouseover', handleMouseOver);
-            wrapper.addEventListener('mouseout', handleMouseOut);
-        } else {
-            Object.assign(wrapper.style, {
-                ...originalDimensions,
-                resize: 'both', borderRadius: '8px',
-                transition: 'width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease'
-            });
-            dockBtn.innerText = 'side_navigation';
-            dockBtn.title = 'Dock to side';
-            // Update icon orientation based on current undocked position
-            updateDockIconOrientation();
-            
-            // Remove the auto-hide listeners
-            wrapper.removeEventListener('mouseover', handleMouseOver);
-            wrapper.removeEventListener('mouseout', handleMouseOut);
-        }
       });
 
-      const cornerPositions = {
-        'top-right':    { top: '10px', right: '10px', bottom: '',  left: '',  transform: 'rotate(90deg)' },
-        'bottom-right': { top: '',    right: '10px', bottom: '10px', left: '',  transform: 'rotate(180deg)' },
-        'bottom-left':  { top: '',    right: '',    bottom: '10px', left: '10px', transform: 'rotate(-90deg)' },
-        'top-left':     { top: '10px', right: '',    bottom: '',  left: '10px', transform: 'rotate(0deg)' }
-      };
-      const cornerKeys = Object.keys(cornerPositions);
-      let currentCornerIndex = 0;
-      dirIcon.style.transform = cornerPositions[cornerKeys[currentCornerIndex]].transform;
 
-      dirIcon.addEventListener('click', () => {
-          if (isDocked) { dockBtn.click(); }
-          if (isMinimized) { minimizeBtn.click(); }
-          
-          currentCornerIndex = (currentCornerIndex + 1) % cornerKeys.length;
-          const newPosition = cornerPositions[cornerKeys[currentCornerIndex]];
+      // Add the listeners when the editor is created
+      document.addEventListener('mousemove', pathMouseMoveHandler);
+      document.addEventListener('click', pathClickHandler, { capture: true });
 
-          Object.assign(wrapper.style, {
-              top: newPosition.top, right: newPosition.right,
-              bottom: newPosition.bottom, left: newPosition.left
-          });
-          dirIcon.style.transform = newPosition.transform;
-          updateDockIconOrientation(); // NEW: Update icon orientation after corner move
-      });
+      header.addEventListener('mousedown', function(e) {
+          if (isDocked || isMinimized) return;
+          let offsetX = e.clientX - wrapper.getBoundingClientRect().left;
+          let offsetY = e.clientY - wrapper.getBoundingClientRect().top;
+          
+          function mouseMoveHandler(e) {
+              wrapper.style.left = `${e.clientX - offsetX}px`;
+              wrapper.style.top = `${e.clientY - offsetY}px`;
+              wrapper.style.right = '';
+              wrapper.style.bottom = '';
+              updateDockIconOrientation(); // Update icon orientation while dragging
+          }
 
-      // --- NEW EVENT LISTENERS FOR LOCAL STORAGE ---
-      textarea.addEventListener('input', () => {
-        updateStyles();
-        saveCssIfPinned();
-      });
-      checkbox.addEventListener('change', updateStyles);
-      formatBtn.addEventListener('click', () => {
-        textarea.value = formatCSS(textarea.value);
-        updateStyles();
-        saveCssIfPinned();
-      });
-      pinCheckbox.addEventListener('change', togglePinCss);
+          function mouseUpHandler() {
+              document.removeEventListener('mousemove', mouseMoveHandler);
+              document.removeEventListener('mouseup', mouseUpHandler);
+          }
 
+          document.addEventListener('mousemove', mouseMoveHandler);
+          document.addEventListener('mouseup', mouseUpHandler);
+      });
 
-      // Add the listeners when the editor is created
-      document.addEventListener('mousemove', pathMouseMoveHandler);
-      document.addEventListener('click', pathClickHandler, { capture: true });
+      // Assemble editor
+      header.appendChild(minimizeBtn);
+      header.appendChild(dockBtn);
+      header.appendChild(dirIcon);
+      header.appendChild(closeBtn);
+      
+      controlsRow.appendChild(formatBtn);
+      controlsRow.appendChild(pinLabel);
 
-      header.addEventListener('mousedown', function(e) {
-          if (isDocked || isMinimized) return;
-          let offsetX = e.clientX - wrapper.getBoundingClientRect().left;
-          let offsetY = e.clientY - wrapper.getBoundingClientRect().top;
-          
-          function mouseMoveHandler(e) {
-              wrapper.style.left = `${e.clientX - offsetX}px`;
-              wrapper.style.top = `${e.clientY - offsetY}px`;
-              wrapper.style.right = '';
-              wrapper.style.bottom = '';
-              updateDockIconOrientation(); // Update icon orientation while dragging
-          }
+      wrapper.appendChild(header);
+      wrapper.appendChild(controlsRow);
+      wrapper.appendChild(textarea);
+      wrapper.appendChild(label);
+      wrapper.appendChild(pathLabel);
+      wrapper.appendChild(pathDisplay);
+      document.body.appendChild(wrapper);
 
-          function mouseUpHandler() {
-              document.removeEventListener('mousemove', mouseMoveHandler);
-              document.removeEventListener('mouseup', mouseUpHandler);
-          }
-
-          document.addEventListener('mousemove', mouseMoveHandler);
-          document.addEventListener('mouseup', mouseUpHandler);
-      });
-
-      // Assemble editor
-      header.appendChild(minimizeBtn);
-      header.appendChild(dockBtn);
-      header.appendChild(dirIcon);
-      header.appendChild(closeBtn);
-      
-      controlsRow.appendChild(formatBtn);
-      controlsRow.appendChild(pinLabel);
-
-      wrapper.appendChild(header);
-      wrapper.appendChild(controlsRow);
-      wrapper.appendChild(textarea);
-      wrapper.appendChild(label);
-      wrapper.appendChild(pathLabel);
-      wrapper.appendChild(pathDisplay);
-      document.body.appendChild(wrapper);
-
-      // Initial calls
-      updateDockIconOrientation();
-      loadPinnedCss();
-    }
-  });
+      // Initial calls
+      updateDockIconOrientation();
+      loadPinnedCss();
+    }
+  });
 })();
-
 </script>
+
 
 </body>
 </html>
