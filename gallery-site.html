@@ -1010,7 +1010,7 @@ zoomContainer.addEventListener('dblclick', () => {
           return selector.replace(/:nth-child\(\d+\)/g, '').replace(/\s*>\s*/g, ' ').replace(/\s+/g, ' ').trim();
       }
       
-      const highlightColor = "#ebff00"; // radioactive yellow #ebff00 or green #acff00 // old blue #0077ff
+      const highlightColor = "#0077ff"; // blue // radioactive yellow #ebff00 or green #acff00 // 
 
       function highlightElement(el) {
         if (lastHighlighted && lastHighlighted !== el) { lastHighlighted.style.outline = ''; }
