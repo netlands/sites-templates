@@ -1012,9 +1012,9 @@ zoomContainer.addEventListener('dblclick', () => {
 
 /**
  * Generates a CSS string of all explicitly set styles for a given element,
- * including inline styles and styles from linked stylesheets.
- * This function excludes browser default styles and any highlighting styles
- * from the tool.
+ * including inline styles and styles from linked stylesheets. This function
+ * is a more accurate approach as it inspects the source styles, avoiding
+ * browser-calculated values.
  *
  * @param {HTMLElement} el The element to get the styles from.
  * @returns {string} The formatted CSS string.
@@ -1027,60 +1027,62 @@ function getActiveCssText(el) {
     }
 
     let cssText = '';
+    const uniqueDeclarations = new Set();
+
+    // Helper function to add a declaration to the set, preventing duplicates.
+    const addDeclaration = (declaration) => {
+        // Normalize whitespace and remove trailing semicolon
+        const normalizedDecl = declaration.trim().replace(/;$/, '');
+        if (normalizedDecl && !uniqueDeclarations.has(normalizedDecl)) {
+            // Also filter out any declarations from the tool's highlighting logic.
+            if (!normalizedDecl.startsWith('outline:')) {
+                uniqueDeclarations.add(normalizedDecl);
+            }
+        }
+    };
 
     // 1. Get Inline Styles (the most direct "actively assigned" styles)
     if (el.style.length > 0) {
         cssText += `/* Inline Styles */\n`;
-        // Format the inline styles for readability
-        cssText += `    ${el.style.cssText.trim().replace(/; /g, ';\n    ')}\n`;
+        // Split the inline styles into individual declarations and add them.
+        el.style.cssText.trim().split(';').forEach(decl => {
+            if (decl.trim() !== '') {
+                addDeclaration(decl);
+            }
+        });
     }
 
     // 2. Iterate through stylesheets to find matching rules
-    // This part of the code directly inspects the source CSS rules.
     for (const sheet of document.styleSheets) {
         try {
-            // Some stylesheets (e.g., from different domains) may not be accessible
-            // due to CORS policy. This try-catch prevents errors.
             for (const rule of sheet.cssRules) {
-                if (rule instanceof CSSStyleRule) {
-                    // Check if the element matches the rule's selector
-                    if (el.matches(rule.selectorText)) {
-                        // The user's original code adds outlines, so we should filter them out here.
-                        let ruleCssText = rule.cssText;
-                        if (ruleCssText.includes('outline:')) {
-                            // A simple regex to remove the outline property from the rule's text.
-                            ruleCssText = ruleCssText.replace(/outline:.*?;/, '').trim();
+                if (rule instanceof CSSStyleRule && el.matches(rule.selectorText)) {
+                    // Split the rule's styles into individual declarations and add them.
+                    rule.style.cssText.trim().split(';').forEach(decl => {
+                        if (decl.trim() !== '') {
+                            addDeclaration(decl);
                         }
-
-                        // Add the rule's cssText to the result if it's not empty
-                        if (ruleCssText.includes('{') && ruleCssText.includes('}')) {
-                            const declarationText = ruleCssText.substring(
-                                ruleCssText.indexOf('{') + 1,
-                                ruleCssText.lastIndexOf('}')
-                            ).trim();
-                            
-                            // Check if the rule is not just the outline property
-                            if (declarationText !== '') {
-                                cssText += `\n/* From: ${rule.selectorText} */\n`;
-                                // Format the declaration text for better readability
-                                cssText += `    ${declarationText.replace(/; /g, ';\n    ')}\n`;
-                            }
-                        }
-                    }
+                    });
                 }
             }
         } catch (e) {
             console.warn("Could not access stylesheet:", sheet.href, e);
         }
     }
+    
+    // Build the final CSS string from the unique declarations.
+    if (uniqueDeclarations.size > 0) {
+        if (cssText !== '') {
+            cssText += '\n';
+        }
+        cssText += `/* Styles from matching rules */\n`;
+        uniqueDeclarations.forEach(decl => {
+            cssText += `    ${decl};\n`;
+        });
+    }
 
-    // A final check to remove any outline styles from the tool's highlighting logic
-    // which might have been missed by the above filtering.
-    const finalCss = cssText.split('\n').filter(line => !line.includes('outline:')).join('\n');
-
-    return finalCss;
+    return cssText;
 }
-
 
 
       function simplifySelector(selector) {
