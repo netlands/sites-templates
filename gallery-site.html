@@ -99,7 +99,18 @@ span.blogger-icon svg {
   height: 20px !important; 
   filter: grayscale(1);
 }        
-        
+
+
+.footer-left {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 0.4em; /* optional: space between icon and text */
+}
+
+
+
+
     .header-container {
       display: flex;
       justify-content: space-between;
@@ -156,7 +167,10 @@ html:not(.main-page) .logo-section img {
   vertical-align: middle;
 }
 
-
+/* menu formatting */
+.nav-section.collapsible-menu.open .top-menu-item, .nav-section.collapsible-menu.open #search-toggle-main {
+    color: black !important;
+}
 
         
       
@@ -374,6 +388,12 @@ button.icon-button {
   padding-left: 10px;
   padding-right: 40px;
 }
+
+/* hide default item */
+html.main-page h3.post-title, html.main-page div.blog-pager {
+    display: none;
+}
+
 
 
 /* work */

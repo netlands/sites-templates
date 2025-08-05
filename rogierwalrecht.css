@@ -1,8 +1,5 @@
-body {
-    background-color: white;
-}
-.sitename {
-    color: black;
+html.main-page body {
+    background-color: black !important;
 }
 
 html.main-page div.logo-section {
@@ -31,16 +28,6 @@ html.main-page header {
     rgba(0, 0, 0, 0) 80%     /* fully transparent */
   );
 }
-html.main-page h3.post-title, html.main-page div.blog-pager {
-    display: none;
-}
-
-.footer-left {
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  gap: 0.4em; /* optional: space between icon and text */
-}
 
 .placeholder.copyright-symbol {
   font-size: 0; /* hides the &copy; visually */
@@ -63,6 +50,4 @@ html.main-page h3.post-title, html.main-page div.blog-pager {
   color: inherit;
 }
 
-.nav-section.collapsible-menu.open .top-menu-item, .nav-section.collapsible-menu.open #search-toggle-main {
-    color: black !important;
-}
+
