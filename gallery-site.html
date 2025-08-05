@@ -819,7 +819,6 @@ zoomContainer.addEventListener('dblclick', () => {
 });
 </script>
 
-<script>
 // Live CSS Editor
 // Ctrl + Click any element with class "style-editor" to open the editor
 
@@ -958,8 +957,7 @@ zoomContainer.addEventListener('dblclick', () => {
       pathCheckbox.id = 'pathToggle';
       const pathLabel = document.createElement('label');
       pathLabel.htmlFor = 'pathToggle';
-      // *** MODIFIED: Key combination changed to Ctrl+Alt+Click ***
-      pathLabel.innerText = ' Show path (Ctrl+Click: selector, Ctrl+Alt+Click: active style)';
+      pathLabel.innerText = ' Show path (Ctrl+Click: insert selector, Ctrl+Alt+Click: insert active style)';
       Object.assign(pathLabel.style, { display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '14px', cursor: 'pointer' });
       pathLabel.insertBefore(pathCheckbox, pathLabel.firstChild);
 
@@ -989,7 +987,7 @@ zoomContainer.addEventListener('dblclick', () => {
       }
 
       function formatCSS(css) {
-        return css.replace(/\s*{\s*/g, ' {\n    ').replace(/;\s*/g, ';\n    ').replace(/\s*}\s*/g, '\n}\n\n').replace(/\n\s*\n/g, '\n').trim();
+        return css.replace(/\s*{\s*/g, ' {\n    ').replace(/;\s*/g, ';\n    ').replace(/\s*}\s*/g, '\n}\n\n').replace(/\n\s*\n/g, '\n').trim();
       }
       
       function getCssPath(el) {
@@ -1010,51 +1008,37 @@ zoomContainer.addEventListener('dblclick', () => {
         return path.join(' > ');
       }
 
-      function getActiveCssText(el) {
-          if (!el) return '';
-          
-          const activeStyles = new Map();
-          let currentEl = el;
+      function getActiveCssText(el) {
+        if (!el) return '';
+        
+        const activeStyles = new Map();
+        let currentEl = el;
 
-          while (currentEl && currentEl !== document.body && currentEl !== document) {
-              for (const prop of currentEl.style) {
-                  if (!activeStyles.has(prop)) {
-                      activeStyles.set(prop, currentEl.style.getPropertyValue(prop));
-                  }
-              }
+        // Temporarily remove the highlight to prevent it from being copied
+        const originalOutline = currentEl.style.outline;
+        currentEl.style.outline = 'initial'; 
 
-              const matchedRules = window.getMatchedCSSRules ? window.getMatchedCSSRules(currentEl, '') : [];
-              if (matchedRules) {
-                  for (let i = matchedRules.length - 1; i >= 0; i--) {
-                      const rule = matchedRules[i];
-                      for (const prop of rule.style) {
-                          if (!activeStyles.has(prop)) {
-                              activeStyles.set(prop, rule.style.getPropertyValue(prop));
-                          }
-                      }
-                  }
-              }
-              currentEl = currentEl.parentElement;
-          }
-          
-          // *** MODIFIED: Logic to remove the tool's own highlight styles ***
-          const outlineStyle = activeStyles.get('outline');
-          if (outlineStyle) {
-              const blueHighlight = `2px dashed ${highlightColor}`;
-              const redHighlight = '2px dotted red';
-              if (outlineStyle === blueHighlight || outlineStyle === redHighlight) {
-                  activeStyles.delete('outline');
-              }
-          }
+        const computedStyle = window.getComputedStyle(currentEl);
+        for (const prop of computedStyle) {
+            if (computedStyle.getPropertyValue(prop)) {
+                activeStyles.set(prop, computedStyle.getPropertyValue(prop));
+            }
+        }
 
-          let cssText = '';
-          activeStyles.forEach((value, prop) => {
-              cssText += `    ${prop}: ${value};\n`;
-          });
+        // Restore the original outline
+        currentEl.style.outline = originalOutline;
 
-          return cssText;
-      }
+        let cssText = '';
+        activeStyles.forEach((value, prop) => {
+          // Add a basic filter for empty values and the tool's styles
+          if (value && prop !== 'outline' && prop !== 'resize') {
+            cssText += `    ${prop}: ${value};\n`;
+          }
+        });
 
+        return cssText;
+      }
+    
       function simplifySelector(selector) {
           selector = " " + selector; 
           return selector.replace(/:nth-child\(\d+\)/g, '').replace(/\s*>\s*/g, ' ').replace(/\s+/g, ' ').trim();
@@ -1181,22 +1165,21 @@ zoomContainer.addEventListener('dblclick', () => {
       const pathClickHandler = function insertPathOrStyle(e) {
           if (pathCheckbox.checked && e.ctrlKey && !wrapper.contains(e.target)) {
               e.preventDefault();
-                const targetElement = e.target;
+                const targetElement = e.target;
               const simplifiedPath = simplifySelector(getCssPath(targetElement));
-
-                // *** MODIFIED: Check for Alt key instead of Shift key ***
-                if (e.altKey) {
-                    const activeCss = getActiveCssText(targetElement);
-                    const newRule = `${simplifiedPath} {\n${activeCss}}\n\n`;
-                    textarea.value += newRule;
-                    updateStyles();
-                } else {
-                    if (!textarea.value.includes(simplifiedPath)) {
-                        const newRule = `${simplifiedPath} {\n    \n}\n\n`;
-                        textarea.value += newRule;
-                        updateStyles();
-                    }
-                }
+              
+                if (e.altKey) {
+                    const activeCss = getActiveCssText(targetElement);
+                    const newRule = `${simplifiedPath} {\n${activeCss}}\n\n`;
+                    textarea.value += newRule;
+                    updateStyles();
+                } else {
+                    if (!textarea.value.includes(simplifiedPath)) {
+                        const newRule = `${simplifiedPath} {\n    \n}\n\n`;
+                        textarea.value += newRule;
+                        updateStyles();
+                    }
+                }
           }
       };
       
@@ -1204,14 +1187,14 @@ zoomContainer.addEventListener('dblclick', () => {
           if (e.relatedTarget && wrapper.contains(e.relatedTarget)) { return; }
           if (isDocked) {
               if (dockToLeft) { wrapper.style.left = '-396px'; } 
-              else { wrapper.style.right = '-396px'; }
+              else { wrapper.style.right = '-396px'; }
           }
       };
       
       const handleMouseOver = () => {
           if (isDocked) {
               if (dockToLeft) { wrapper.style.left = '0px'; } 
-              else { wrapper.style.right = '0px'; }
+              else { wrapper.style.right = '0px'; }
           }
       };
       
@@ -1254,8 +1237,8 @@ zoomContainer.addEventListener('dblclick', () => {
               wrapper.style.width = 'auto';
               wrapper.style.padding = '4px 10px'; 
               
-              const rect = { top: parseFloat(preMinimizeDimensions.top), left: parseFloat(preMinimizeDimensions.left), bottom: parseFloat(preMinimizeDimensions.top) + parseFloat(preMinimizeDimensions.height), right: parseFloat(preMinimizeDimensions.left) + parseFloat(preMinimizeDimensions.width) };
-              const dist = { top: rect.top, bottom: window.innerHeight - rect.bottom, left: rect.left, right: window.innerWidth - rect.right };
+              const rect = { top: parseFloat(preMinimizeDimensions.top), left: parseFloat(preMinimizeDimensions.left), bottom: parseFloat(preMinimizeDimensions.top) + parseFloat(preMinimizeDimensions.height), right: window.innerWidth - (parseFloat(preMinimizeDimensions.left) + parseFloat(preMinimizeDimensions.width)) };
+              const dist = { top: rect.top, bottom: window.innerHeight - rect.bottom, left: rect.left, right: rect.right };
               const closestEdge = Object.keys(dist).reduce((a, b) => dist[a] < dist[b] ? a : b);
               wrapper.style.top = wrapper.style.bottom = wrapper.style.left = wrapper.style.right = '';
 
@@ -1377,10 +1360,11 @@ zoomContainer.addEventListener('dblclick', () => {
       // Initial calls
       updateDockIconOrientation();
       loadPinnedCss();
-    }
-  });
+    });
 })();
-</script>
+
+
+
 
 </body>
 </html>
