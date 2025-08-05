@@ -1012,7 +1012,9 @@ zoomContainer.addEventListener('dblclick', () => {
 
 /**
  * Generates a CSS string of all explicitly set styles for a given element,
- * excluding default browser styles and temporary highlighting styles from the tool.
+ * including inline styles and styles from linked stylesheets.
+ * This function excludes browser default styles and any highlighting styles
+ * from the tool.
  *
  * @param {HTMLElement} el The element to get the styles from.
  * @returns {string} The formatted CSS string.
@@ -1024,57 +1026,60 @@ function getActiveCssText(el) {
         return '';
     }
 
-    // A map to store the styles that are not browser defaults.
-    const activeStyles = new Map();
-    const currentEl = el;
+    let cssText = '';
 
-    // Store the original outline and resize styles to prevent the tool's own styles from being captured.
-    const originalOutline = currentEl.style.outline;
-    const originalResize = currentEl.style.resize;
+    // 1. Get Inline Styles (the most direct "actively assigned" styles)
+    if (el.style.length > 0) {
+        cssText += `/* Inline Styles */\n`;
+        // Format the inline styles for readability
+        cssText += `    ${el.style.cssText.trim().replace(/; /g, ';\n    ')}\n`;
+    }
 
-    // Temporarily remove the highlight and resize styles before getting computed styles.
-    currentEl.style.outline = 'initial';
-    currentEl.style.resize = 'initial';
+    // 2. Iterate through stylesheets to find matching rules
+    // This part of the code directly inspects the source CSS rules.
+    for (const sheet of document.styleSheets) {
+        try {
+            // Some stylesheets (e.g., from different domains) may not be accessible
+            // due to CORS policy. This try-catch prevents errors.
+            for (const rule of sheet.cssRules) {
+                if (rule instanceof CSSStyleRule) {
+                    // Check if the element matches the rule's selector
+                    if (el.matches(rule.selectorText)) {
+                        // The user's original code adds outlines, so we should filter them out here.
+                        let ruleCssText = rule.cssText;
+                        if (ruleCssText.includes('outline:')) {
+                            // A simple regex to remove the outline property from the rule's text.
+                            ruleCssText = ruleCssText.replace(/outline:.*?;/, '').trim();
+                        }
 
-    // Create a temporary, empty element of the same tag name to get default browser styles.
-    const tempEl = document.createElement(currentEl.tagName);
-    tempEl.style.display = 'none'; // Keep it hidden.
-    document.body.appendChild(tempEl);
-
-    // Get the computed styles for both the target element and the temporary element.
-    const elementStyles = window.getComputedStyle(currentEl);
-    const defaultStyles = window.getComputedStyle(tempEl);
-
-    // Iterate over all computed style properties.
-    for (const prop of elementStyles) {
-        // Check if the property's value on the target element is different from the default.
-        const value = elementStyles.getPropertyValue(prop);
-        if (value && value !== defaultStyles.getPropertyValue(prop)) {
-            // Also, explicitly check for and exclude any properties added by the tool.
-            if (prop !== 'outline' && prop !== 'resize') {
-                activeStyles.set(prop, value);
+                        // Add the rule's cssText to the result if it's not empty
+                        if (ruleCssText.includes('{') && ruleCssText.includes('}')) {
+                            const declarationText = ruleCssText.substring(
+                                ruleCssText.indexOf('{') + 1,
+                                ruleCssText.lastIndexOf('}')
+                            ).trim();
+                            
+                            // Check if the rule is not just the outline property
+                            if (declarationText !== '') {
+                                cssText += `\n/* From: ${rule.selectorText} */\n`;
+                                // Format the declaration text for better readability
+                                cssText += `    ${declarationText.replace(/; /g, ';\n    ')}\n`;
+                            }
+                        }
+                    }
+                }
             }
+        } catch (e) {
+            console.warn("Could not access stylesheet:", sheet.href, e);
         }
     }
 
-    // Restore the original outline and resize styles on the element.
-    currentEl.style.outline = originalOutline;
-    currentEl.style.resize = originalResize;
+    // A final check to remove any outline styles from the tool's highlighting logic
+    // which might have been missed by the above filtering.
+    const finalCss = cssText.split('\n').filter(line => !line.includes('outline:')).join('\n');
 
-    // Remove the temporary element from the DOM.
-    document.body.removeChild(tempEl);
-
-    // Build the final CSS string from the filtered styles.
-    let cssText = '';
-    activeStyles.forEach((value, prop) => {
-        // Format the output for readability.
-        cssText += `    ${prop}: ${value};\n`;
-    });
-
-    return cssText;
+    return finalCss;
 }
-
-
 
 
 
