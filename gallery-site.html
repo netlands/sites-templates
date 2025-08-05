@@ -841,8 +841,8 @@ zoomContainer.addEventListener('dblclick', () => {
       let originalDimensions = {}; // For docking
       let preMinimizeDimensions = {}; // For minimizing
       let dockToLeft = false; // Tracks which side the dialog is docked to
-      let lastHighlighted = null; // For the yellow highlight on mouseover
-      let lastActiveHighlighted = null; // NEW: For the red highlight on text input
+      let lastHighlighted = null; // For the blue highlight on mouseover
+      let lastActiveHighlighted = null; // For the red highlight on text input
 
       // --- CREATE UI ELEMENTS ---
 
@@ -874,31 +874,29 @@ zoomContainer.addEventListener('dblclick', () => {
       const header = document.createElement('div');
       Object.assign(header.style, {
         display: 'flex',
-        justifyContent: 'space-between', // Changed from flex-end to space-between
+        justifyContent: 'space-between', 
         gap: '8px',
         marginBottom: '4px',
         cursor: 'move',
         userSelect: 'none'
       });
       
-      // NEW: Create a container for the control buttons
-      const controlButtons = document.createElement('div');
-      Object.assign(controlButtons.style, {
-          display: 'flex',
-          gap: '8px'
-      });
+      const controlButtons = document.createElement('div');
+      Object.assign(controlButtons.style, {
+          display: 'flex',
+          gap: '8px'
+      });
 
-      // NEW: Logo element
-      const logo = document.createElement('div');
-      logo.innerText = '{Live Edit CSS}';
-      Object.assign(logo.style, {
-          fontFamily: 'monospace',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          color: '#333',
-          cursor: 'default',
-      });
-      
+      const logo = document.createElement('div');
+      logo.innerText = '{Live Edit CSS }';
+      Object.assign(logo.style, {
+          fontFamily: 'monospace',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          color: '#333',
+          cursor: 'default',
+      });
+      
       // --- HEADER BUTTONS ---
 
       const minimizeBtn = document.createElement('span');
@@ -969,7 +967,8 @@ zoomContainer.addEventListener('dblclick', () => {
       pathCheckbox.id = 'pathToggle';
       const pathLabel = document.createElement('label');
       pathLabel.htmlFor = 'pathToggle';
-      pathLabel.innerText = ' Show path under cursor (Ctrl+click to insert)';
+      // *** MODIFIED: Updated label text for clarity ***
+      pathLabel.innerText = ' Show path (Ctrl+Click: selector, Ctrl+Shift+Click: full style)';
       Object.assign(pathLabel.style, { display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '14px', cursor: 'pointer' });
       pathLabel.insertBefore(pathCheckbox, pathLabel.firstChild);
 
@@ -1002,7 +1001,7 @@ zoomContainer.addEventListener('dblclick', () => {
       }
 
       function formatCSS(css) {
-        return css.replace(/\s*{\s*/g, ' {\n    ').replace(/;\s*/g, ';\n    ').replace(/\s*}\s*/g, '\n}\n\n').replace(/\n\s*\n/g, '\n').trim();
+        return css.replace(/\s*{\s*/g, ' {\n    ').replace(/;\s*/g, ';\n    ').replace(/\s*}\s*/g, '\n}\n\n').replace(/\n\s*\n/g, '\n').trim();
       }
       
       function getCssPath(el) {
@@ -1023,17 +1022,32 @@ zoomContainer.addEventListener('dblclick', () => {
         return path.join(' > ');
       }
 
+      // *** NEW: Function to get all computed styles of an element ***
+      function getComputedCssText(el) {
+          if (!el) return '';
+          const styles = window.getComputedStyle(el);
+          let cssText = '';
+          // The CSSStyleDeclaration object is iterable
+          for (const prop of styles) {
+              const value = styles.getPropertyValue(prop);
+              if (value) {
+                  cssText += `    ${prop}: ${value};\n`;
+              }
+          }
+          return cssText;
+      }
+
       function simplifySelector(selector) {
           selector = " " + selector; 
           return selector.replace(/:nth-child\(\d+\)/g, '').replace(/\s*>\s*/g, ' ').replace(/\s+/g, ' ').trim();
       }
       
-      const highlightColor = "#0077ff"; // blue // radioactive yellow #ebff00 or green #acff00
+      const highlightColor = "#0077ff"; 
 
       function highlightElement(el) {
         if (lastHighlighted && lastHighlighted !== el) { lastHighlighted.style.outline = ''; }
         if (el && el !== document.body && el.nodeType === 1 && !wrapper.contains(el)) {
-          el.style.outline = '2px dashed' + highlightColor;
+          el.style.outline = '2px dashed ' + highlightColor;
           lastHighlighted = el;
         }
       }
@@ -1042,7 +1056,6 @@ zoomContainer.addEventListener('dblclick', () => {
           if (lastHighlighted) { lastHighlighted.style.outline = ''; lastHighlighted = null; }
       }
       
-      // NEW: Functions for the red highlight
       function highlightActiveSelector() {
           if (!pathCheckbox.checked) {
               removeActiveHighlight();
@@ -1051,7 +1064,6 @@ zoomContainer.addEventListener('dblclick', () => {
           const text = textarea.value;
           const cursorPosition = textarea.selectionStart;
       
-          // A simple regex to find the selector associated with the current cursor position
           const rulesRegex = /([^{}]+)\s*\{([^}]*)\}/g;
           let match;
           let activeSelector = null;
@@ -1094,14 +1106,12 @@ zoomContainer.addEventListener('dblclick', () => {
       function setDialogContentVisibility(visible) {
           const children = [formatBtn, textarea, label, pathLabel, pathDisplay, pinLabel];
           children.forEach(child => { child.style.display = visible ? '' : 'none'; });
-          logo.style.display = visible ? '' : 'none'; // NEW: hide logo
+          logo.style.display = visible ? '' : 'none';
       }
 
-      // NEW: Function to update dock icon based on dialog's current position
       function updateDockIconOrientation() {
         if (!isDocked && !isMinimized) {
           const rect = wrapper.getBoundingClientRect();
-          // Check if the left edge is in the left half of the screen
           dockToLeft = rect.left < (window.innerWidth / 2);
           dockBtn.style.transform = dockToLeft ? 'scaleX(-1)' : 'scaleX(1)';
         }
@@ -1134,48 +1144,56 @@ zoomContainer.addEventListener('dblclick', () => {
           }
       }
       
-      // MODIFIED: Named functions for event listeners so they can be removed
       const pathMouseMoveHandler = e => {
-        // Only highlight if the mouse is outside the editor wrapper
         if (!wrapper.contains(e.target) && pathCheckbox.checked) {
-            removeActiveHighlight(); // Remove red highlight
+            removeActiveHighlight();
             highlightElement(e.target);
             const path = getCssPath(e.target);
             const simplifiedPath = simplifySelector(path);
             pathDisplay.value = simplifiedPath;
         } else if (wrapper.contains(e.target) && lastHighlighted) {
-            // If mouse moves into the editor, remove yellow highlight
             removeHighlight();
         } else if (!pathCheckbox.checked) {
-            // If checkbox is unchecked, ensure no highlights are visible
             removeHighlight();
             removeActiveHighlight();
             pathDisplay.value = '';
         }
       };
 
-      const pathClickHandler = function insertPath(e) {
+      // *** MODIFIED: pathClickHandler now handles Ctrl+Click and Ctrl+Shift+Click ***
+      const pathClickHandler = function insertPathOrStyle(e) {
           if (pathCheckbox.checked && e.ctrlKey && !wrapper.contains(e.target)) {
               e.preventDefault();
-              const simplifiedPath = simplifySelector(getCssPath(e.target));
-              if (!textarea.value.includes(simplifiedPath)) {
-                const newRule = `${simplifiedPath} {\n    \n}\n\n`;
-                textarea.value += newRule;
-                updateStyles();
-              }
+                const targetElement = e.target;
+              const simplifiedPath = simplifySelector(getCssPath(targetElement));
+
+                // Check if Shift key is also pressed
+                if (e.shiftKey) {
+                    // Ctrl+Shift+Click: Insert the full computed style
+                    const computedCss = getComputedCssText(targetElement);
+                    const newRule = `${simplifiedPath} {\n${computedCss}}\n\n`;
+                    textarea.value += newRule;
+                    updateStyles();
+                } else {
+                    // Ctrl+Click (original behavior): Insert the selector
+                    if (!textarea.value.includes(simplifiedPath)) {
+                        const newRule = `${simplifiedPath} {\n    \n}\n\n`;
+                        textarea.value += newRule;
+                        updateStyles();
+                    }
+                }
           }
       };
       
-      // UPDATED: New handlers for the auto-hide feature
       const handleMouseOut = (e) => {
           if (e.relatedTarget && wrapper.contains(e.relatedTarget)) {
-              return; // Mouse moved to a child element, don't hide.
+              return; 
           }
           if (isDocked) {
               if (dockToLeft) {
-                  wrapper.style.left = '-396px'; // Hide, leaving 4px visible
+                  wrapper.style.left = '-396px';
               } else {
-                  wrapper.style.right = '-396px'; // Hide, leaving 4px visible
+                  wrapper.style.right = '-396px';
               }
           }
       };
@@ -1183,16 +1201,15 @@ zoomContainer.addEventListener('dblclick', () => {
       const handleMouseOver = () => {
           if (isDocked) {
               if (dockToLeft) {
-                  wrapper.style.left = '0px'; // Show
+                  wrapper.style.left = '0px'; 
               } else {
-                  wrapper.style.right = '0px'; // Show
+                  wrapper.style.right = '0px';
               }
           }
       };
       
       // --- EVENT LISTENERS ---
       closeBtn.addEventListener('click', () => {
-        // Clear local storage ONLY if the user has not pinned the CSS
         if (!pinCheckbox.checked) {
             localStorage.removeItem('liveCssPinned');
             localStorage.removeItem('liveCssContent');
@@ -1202,15 +1219,12 @@ zoomContainer.addEventListener('dblclick', () => {
         wrapper.remove();
         styleTag.remove();
         
-        // Remove the listeners when the editor is closed
         document.removeEventListener('mousemove', pathMouseMoveHandler);
         document.removeEventListener('click', pathClickHandler, { capture: true });
         
-        // Remove auto-hide listeners
         wrapper.removeEventListener('mouseover', handleMouseOver);
         wrapper.removeEventListener('mouseout', handleMouseOut);
         
-        // Remove new listeners for red highlighting
         textarea.removeEventListener('input', highlightActiveSelector);
         textarea.removeEventListener('click', highlightActiveSelector);
         textarea.removeEventListener('blur', removeActiveHighlight);
@@ -1236,7 +1250,7 @@ zoomContainer.addEventListener('dblclick', () => {
           if (isMinimized) {
               wrapper.style.height = 'auto';
               wrapper.style.width = 'auto';
-              wrapper.style.padding = '4px 10px'; // Smaller padding when minimized
+              wrapper.style.padding = '4px 10px'; 
               
               const rect = {
                   top: parseFloat(preMinimizeDimensions.top), left: parseFloat(preMinimizeDimensions.left),
@@ -1270,7 +1284,7 @@ zoomContainer.addEventListener('dblclick', () => {
       
       dockBtn.addEventListener('click', () => {
         if (isMinimized) {
-            minimizeBtn.click(); // Maximize before docking
+            minimizeBtn.click();
         }
 
         isDocked = !isDocked;
@@ -1281,8 +1295,6 @@ zoomContainer.addEventListener('dblclick', () => {
                 width: `${rect.width}px`, height: `${rect.height}px`
             };
             
-            // Note: dockToLeft is already set by updateDockIconOrientation
-            
             Object.assign(wrapper.style, {
                 top: '0px', left: dockToLeft ? '0px' : '', right: dockToLeft ? '' : '0px',
                 bottom: '0px', width: '400px', height: '100vh',
@@ -1290,36 +1302,29 @@ zoomContainer.addEventListener('dblclick', () => {
                 transition: 'left 0.3s ease, right 0.3s ease'
             });
 
-            // Hide minimize button when docked
             minimizeBtn.style.display = 'none';
-            // Hide logo when docked as it will auto-hide anyway
-            logo.style.display = 'none';
+            logo.style.display = 'none';
 
             dockBtn.innerText = 'side_navigation';
             dockBtn.title = 'Undock';
             dockBtn.style.transform = dockToLeft ? 'scaleX(-1)' : 'scaleX(1)';
 
-            // Add the auto-hide listeners
             wrapper.addEventListener('mouseover', handleMouseOver);
             wrapper.addEventListener('mouseout', handleMouseOut);
         } else {
             Object.assign(wrapper.style, {
                 ...originalDimensions,
                 resize: 'both', borderRadius: '8px',
-                transition: 'width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease'
+                transition: 'width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease'
             });
 
-            // Show minimize button when undocked
             minimizeBtn.style.display = '';
-            // Show logo when undocked
-            logo.style.display = '';
-            
+            logo.style.display = '';
+            
             dockBtn.innerText = 'side_navigation';
             dockBtn.title = 'Dock to side';
-            // Update icon orientation based on current undocked position
             updateDockIconOrientation();
             
-            // Remove the auto-hide listeners
             wrapper.removeEventListener('mouseover', handleMouseOver);
             wrapper.removeEventListener('mouseout', handleMouseOut);
         }
@@ -1347,14 +1352,13 @@ zoomContainer.addEventListener('dblclick', () => {
               bottom: newPosition.bottom, left: newPosition.left
           });
           dirIcon.style.transform = newPosition.transform;
-          updateDockIconOrientation(); // NEW: Update icon orientation after corner move
+          updateDockIconOrientation();
       });
 
-      // --- NEW EVENT LISTENERS FOR LOCAL STORAGE ---
       textarea.addEventListener('input', () => {
         updateStyles();
         saveCssIfPinned();
-        highlightActiveSelector(); // NEW: Highlight element on input
+        highlightActiveSelector();
       });
       checkbox.addEventListener('change', updateStyles);
       formatBtn.addEventListener('click', () => {
@@ -1364,11 +1368,8 @@ zoomContainer.addEventListener('dblclick', () => {
       });
       pinCheckbox.addEventListener('change', togglePinCss);
 
-      // NEW: Add a listener to remove the red highlight when the text area loses focus
       textarea.addEventListener('blur', removeActiveHighlight);
-      // NEW: Add a listener to update the red highlight on cursor movement
       textarea.addEventListener('click', highlightActiveSelector);
-      // NEW: Add a listener to remove the red highlight if the checkbox is unchecked
       pathCheckbox.addEventListener('change', () => {
           if (!pathCheckbox.checked) {
               removeActiveHighlight();
@@ -1376,7 +1377,6 @@ zoomContainer.addEventListener('dblclick', () => {
       });
 
 
-      // Add the listeners when the editor is created
       document.addEventListener('mousemove', pathMouseMoveHandler);
       document.addEventListener('click', pathClickHandler, { capture: true });
 
@@ -1390,7 +1390,7 @@ zoomContainer.addEventListener('dblclick', () => {
               wrapper.style.top = `${e.clientY - offsetY}px`;
               wrapper.style.right = '';
               wrapper.style.bottom = '';
-              updateDockIconOrientation(); // Update icon orientation while dragging
+              updateDockIconOrientation();
           }
 
           function mouseUpHandler() {
@@ -1428,7 +1428,6 @@ zoomContainer.addEventListener('dblclick', () => {
   });
 })();
 </script>
-
 
 
 
