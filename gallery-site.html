@@ -898,7 +898,6 @@ zoomContainer.addEventListener('dblclick', () => {
       });
       
       // --- HEADER BUTTONS ---
-
       const minimizeBtn = document.createElement('span');
       minimizeBtn.className = 'material-symbols-outlined';
       minimizeBtn.innerText = 'minimize';
@@ -915,12 +914,7 @@ zoomContainer.addEventListener('dblclick', () => {
       dirIcon.className = 'material-symbols-outlined';
       dirIcon.innerText = 'dropdown';
       dirIcon.title = 'Move to corner';
-      Object.assign(dirIcon.style, {
-          fontSize: '20px',
-          cursor: 'pointer',
-          color: '#000',
-          transition: 'transform 0.3s ease'
-      });
+      Object.assign(dirIcon.style, { fontSize: '20px', cursor: 'pointer', color: '#000', transition: 'transform 0.3s ease' });
       
       const closeBtn = document.createElement('span');
       closeBtn.className = 'material-symbols-outlined';
@@ -939,10 +933,7 @@ zoomContainer.addEventListener('dblclick', () => {
 
       const formatBtn = document.createElement('button');
       formatBtn.innerText = 'Format CSS';
-      Object.assign(formatBtn.style, {
-        fontSize: '12px', padding: '4px 8px', cursor: 'pointer',
-        fontFamily: 'monospace', border: '1px solid #ccc', borderRadius: '4px', background: '#f0f0f0'
-      });
+      Object.assign(formatBtn.style, { fontSize: '12px', padding: '4px 8px', cursor: 'pointer', fontFamily: 'monospace', border: '1px solid #ccc', borderRadius: '4px', background: '#f0f0f0' });
       
       const pinCheckbox = document.createElement('input');
       pinCheckbox.type = 'checkbox';
@@ -967,18 +958,14 @@ zoomContainer.addEventListener('dblclick', () => {
       pathCheckbox.id = 'pathToggle';
       const pathLabel = document.createElement('label');
       pathLabel.htmlFor = 'pathToggle';
-      // *** MODIFIED: Updated label text for clarity ***
-      pathLabel.innerText = ' Show path (Ctrl+Click: selector, Ctrl+Shift+Click: full style)';
+      pathLabel.innerText = ' Show path (Ctrl+Click: selector, Ctrl+Shift+Click: active style)';
       Object.assign(pathLabel.style, { display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '14px', cursor: 'pointer' });
       pathLabel.insertBefore(pathCheckbox, pathLabel.firstChild);
 
       const pathDisplay = document.createElement('input');
       pathDisplay.type = 'text';
       pathDisplay.readOnly = true;
-      Object.assign(pathDisplay.style, {
-        width: '100%', fontSize: '12px', fontFamily: 'monospace', padding: '4px',
-        border: '1px solid #ccc', background: '#f9f9f9', boxSizing: 'border-box', borderRadius: '4px'
-      });
+      Object.assign(pathDisplay.style, { width: '100%', fontSize: '12px', fontFamily: 'monospace', padding: '4px', border: '1px solid #ccc', background: '#f9f9f9', boxSizing: 'border-box', borderRadius: '4px' });
 
       const styleTag = document.createElement('style');
       document.head.appendChild(styleTag);
@@ -1022,18 +1009,47 @@ zoomContainer.addEventListener('dblclick', () => {
         return path.join(' > ');
       }
 
-      // *** NEW: Function to get all computed styles of an element ***
-      function getComputedCssText(el) {
+      // *** NEW: Function to get only actively-applied styles, ignoring browser defaults ***
+      function getActiveCssText(el) {
           if (!el) return '';
-          const styles = window.getComputedStyle(el);
-          let cssText = '';
-          // The CSSStyleDeclaration object is iterable
-          for (const prop of styles) {
-              const value = styles.getPropertyValue(prop);
-              if (value) {
-                  cssText += `    ${prop}: ${value};\n`;
+          
+          // Use a Map to store unique properties, respecting specificity (first one wins)
+          const activeStyles = new Map();
+          let currentEl = el;
+
+          // Walk up the DOM tree from the element to the body
+          while (currentEl && currentEl !== document.body && currentEl !== document) {
+              // Get inline styles first, as they have the highest specificity for this element
+              for (const prop of currentEl.style) {
+                  if (!activeStyles.has(prop)) {
+                      activeStyles.set(prop, currentEl.style.getPropertyValue(prop));
+                  }
               }
+
+              // Get styles from matched CSS rules (author stylesheets)
+              // Note: getMatchedCSSRules is non-standard but works in Chromium-based browsers
+              const matchedRules = window.getMatchedCSSRules ? window.getMatchedCSSRules(currentEl, '') : [];
+              if (matchedRules) {
+                  // Iterate backwards to respect rule order (more specific rules come later)
+                  for (let i = matchedRules.length - 1; i >= 0; i--) {
+                      const rule = matchedRules[i];
+                      for (const prop of rule.style) {
+                          // If we haven't already stored this property from a more specific rule, add it
+                          if (!activeStyles.has(prop)) {
+                              activeStyles.set(prop, rule.style.getPropertyValue(prop));
+                          }
+                      }
+                  }
+              }
+              currentEl = currentEl.parentElement;
           }
+
+          // Format the collected styles into a CSS string
+          let cssText = '';
+          activeStyles.forEach((value, prop) => {
+              cssText += `    ${prop}: ${value};\n`;
+          });
+
           return cssText;
       }
 
@@ -1149,7 +1165,7 @@ zoomContainer.addEventListener('dblclick', () => {
             removeActiveHighlight();
             highlightElement(e.target);
             const path = getCssPath(e.target);
-            const simplifiedPath = simplifySelector(path);
+    -       const simplifiedPath = simplifySelector(path);
             pathDisplay.value = simplifiedPath;
         } else if (wrapper.contains(e.target) && lastHighlighted) {
             removeHighlight();
@@ -1160,22 +1176,19 @@ zoomContainer.addEventListener('dblclick', () => {
         }
       };
 
-      // *** MODIFIED: pathClickHandler now handles Ctrl+Click and Ctrl+Shift+Click ***
       const pathClickHandler = function insertPathOrStyle(e) {
           if (pathCheckbox.checked && e.ctrlKey && !wrapper.contains(e.target)) {
               e.preventDefault();
                 const targetElement = e.target;
               const simplifiedPath = simplifySelector(getCssPath(targetElement));
 
-                // Check if Shift key is also pressed
                 if (e.shiftKey) {
-                    // Ctrl+Shift+Click: Insert the full computed style
-                    const computedCss = getComputedCssText(targetElement);
-                    const newRule = `${simplifiedPath} {\n${computedCss}}\n\n`;
+                    // *** MODIFIED: Use the new getActiveCssText function ***
+                    const activeCss = getActiveCssText(targetElement);
+                    const newRule = `${simplifiedPath} {\n${activeCss}}\n\n`;
                     textarea.value += newRule;
                     updateStyles();
                 } else {
-                    // Ctrl+Click (original behavior): Insert the selector
                     if (!textarea.value.includes(simplifiedPath)) {
                         const newRule = `${simplifiedPath} {\n    \n}\n\n`;
                         textarea.value += newRule;
@@ -1186,25 +1199,17 @@ zoomContainer.addEventListener('dblclick', () => {
       };
       
       const handleMouseOut = (e) => {
-          if (e.relatedTarget && wrapper.contains(e.relatedTarget)) {
-              return; 
-          }
+          if (e.relatedTarget && wrapper.contains(e.relatedTarget)) { return; }
           if (isDocked) {
-              if (dockToLeft) {
-                  wrapper.style.left = '-396px';
-              } else {
-                  wrapper.style.right = '-396px';
-              }
+              if (dockToLeft) { wrapper.style.left = '-396px'; } 
+              else { wrapper.style.right = '-396px'; }
           }
       };
       
       const handleMouseOver = () => {
           if (isDocked) {
-              if (dockToLeft) {
-                  wrapper.style.left = '0px'; 
-              } else {
-                  wrapper.style.right = '0px';
-              }
+              if (dockToLeft) { wrapper.style.left = '0px'; } 
+              else { wrapper.style.right = '0px'; }
           }
       };
       
@@ -1221,10 +1226,8 @@ zoomContainer.addEventListener('dblclick', () => {
         
         document.removeEventListener('mousemove', pathMouseMoveHandler);
         document.removeEventListener('click', pathClickHandler, { capture: true });
-        
         wrapper.removeEventListener('mouseover', handleMouseOver);
         wrapper.removeEventListener('mouseout', handleMouseOut);
-        
         textarea.removeEventListener('input', highlightActiveSelector);
         textarea.removeEventListener('click', highlightActiveSelector);
         textarea.removeEventListener('blur', removeActiveHighlight);
@@ -1234,10 +1237,7 @@ zoomContainer.addEventListener('dblclick', () => {
       minimizeBtn.addEventListener('click', () => {
           if (!isMinimized) {
               const rect = wrapper.getBoundingClientRect();
-              preMinimizeDimensions = {
-                top: `${rect.top}px`, left: `${rect.left}px`,
-                width: `${rect.width}px`, height: `${rect.height}px`
-              };
+              preMinimizeDimensions = { top: `${rect.top}px`, left: `${rect.left}px`, width: `${rect.width}px`, height: `${rect.height}px` };
           }
 
           isMinimized = !isMinimized;
@@ -1252,19 +1252,9 @@ zoomContainer.addEventListener('dblclick', () => {
               wrapper.style.width = 'auto';
               wrapper.style.padding = '4px 10px'; 
               
-              const rect = {
-                  top: parseFloat(preMinimizeDimensions.top), left: parseFloat(preMinimizeDimensions.left),
-                  bottom: parseFloat(preMinimizeDimensions.top) + parseFloat(preMinimizeDimensions.height),
-                  right: parseFloat(preMinimizeDimensions.left) + parseFloat(preMinimizeDimensions.width)
-              };
-
-              const dist = {
-                  top: rect.top, bottom: window.innerHeight - rect.bottom,
-                  left: rect.left, right: window.innerWidth - rect.right
-              };
-
+              const rect = { top: parseFloat(preMinimizeDimensions.top), left: parseFloat(preMinimizeDimensions.left), bottom: parseFloat(preMinimizeDimensions.top) + parseFloat(preMinimizeDimensions.height), right: parseFloat(preMinimizeDimensions.left) + parseFloat(preMinimizeDimensions.width) };
+              const dist = { top: rect.top, bottom: window.innerHeight - rect.bottom, left: rect.left, right: window.innerWidth - rect.right };
               const closestEdge = Object.keys(dist).reduce((a, b) => dist[a] < dist[b] ? a : b);
-              
               wrapper.style.top = wrapper.style.bottom = wrapper.style.left = wrapper.style.right = '';
 
               switch (closestEdge) {
@@ -1274,57 +1264,29 @@ zoomContainer.addEventListener('dblclick', () => {
                   case 'right':   wrapper.style.right = '0px'; wrapper.style.top = preMinimizeDimensions.top; break;
               }
           } else {
-              Object.assign(wrapper.style, {
-                  ...preMinimizeDimensions,
-                  padding: '10px',
-                  right: '', bottom: ''
-              });
+              Object.assign(wrapper.style, { ...preMinimizeDimensions, padding: '10px', right: '', bottom: '' });
           }
       });
       
       dockBtn.addEventListener('click', () => {
-        if (isMinimized) {
-            minimizeBtn.click();
-        }
-
+        if (isMinimized) { minimizeBtn.click(); }
         isDocked = !isDocked;
         if (isDocked) {
             const rect = wrapper.getBoundingClientRect();
-            originalDimensions = {
-                top: `${rect.top}px`, left: `${rect.left}px`,
-                width: `${rect.width}px`, height: `${rect.height}px`
-            };
-            
-            Object.assign(wrapper.style, {
-                top: '0px', left: dockToLeft ? '0px' : '', right: dockToLeft ? '' : '0px',
-                bottom: '0px', width: '400px', height: '100vh',
-                resize: 'none', borderRadius: '0',
-                transition: 'left 0.3s ease, right 0.3s ease'
-            });
-
+            originalDimensions = { top: `${rect.top}px`, left: `${rect.left}px`, width: `${rect.width}px`, height: `${rect.height}px` };
+            Object.assign(wrapper.style, { top: '0px', left: dockToLeft ? '0px' : '', right: dockToLeft ? '' : '0px', bottom: '0px', width: '400px', height: '100vh', resize: 'none', borderRadius: '0', transition: 'left 0.3s ease, right 0.3s ease' });
             minimizeBtn.style.display = 'none';
             logo.style.display = 'none';
-
-            dockBtn.innerText = 'side_navigation';
             dockBtn.title = 'Undock';
             dockBtn.style.transform = dockToLeft ? 'scaleX(-1)' : 'scaleX(1)';
-
             wrapper.addEventListener('mouseover', handleMouseOver);
             wrapper.addEventListener('mouseout', handleMouseOut);
         } else {
-            Object.assign(wrapper.style, {
-                ...originalDimensions,
-                resize: 'both', borderRadius: '8px',
-                transition: 'width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease'
-            });
-
+            Object.assign(wrapper.style, { ...originalDimensions, resize: 'both', borderRadius: '8px', transition: 'width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease' });
             minimizeBtn.style.display = '';
             logo.style.display = '';
-            
-            dockBtn.innerText = 'side_navigation';
             dockBtn.title = 'Dock to side';
             updateDockIconOrientation();
-            
             wrapper.removeEventListener('mouseover', handleMouseOver);
             wrapper.removeEventListener('mouseout', handleMouseOut);
         }
@@ -1343,14 +1305,9 @@ zoomContainer.addEventListener('dblclick', () => {
       dirIcon.addEventListener('click', () => {
           if (isDocked) { dockBtn.click(); }
           if (isMinimized) { minimizeBtn.click(); }
-          
           currentCornerIndex = (currentCornerIndex + 1) % cornerKeys.length;
           const newPosition = cornerPositions[cornerKeys[currentCornerIndex]];
-
-          Object.assign(wrapper.style, {
-              top: newPosition.top, right: newPosition.right,
-              bottom: newPosition.bottom, left: newPosition.left
-          });
+          Object.assign(wrapper.style, { top: newPosition.top, right: newPosition.right, bottom: newPosition.bottom, left: newPosition.left });
           dirIcon.style.transform = newPosition.transform;
           updateDockIconOrientation();
       });
@@ -1367,15 +1324,11 @@ zoomContainer.addEventListener('dblclick', () => {
         saveCssIfPinned();
       });
       pinCheckbox.addEventListener('change', togglePinCss);
-
       textarea.addEventListener('blur', removeActiveHighlight);
       textarea.addEventListener('click', highlightActiveSelector);
       pathCheckbox.addEventListener('change', () => {
-          if (!pathCheckbox.checked) {
-              removeActiveHighlight();
-          }
+          if (!pathCheckbox.checked) { removeActiveHighlight(); }
       });
-
 
       document.addEventListener('mousemove', pathMouseMoveHandler);
       document.addEventListener('click', pathClickHandler, { capture: true });
@@ -1409,10 +1362,8 @@ zoomContainer.addEventListener('dblclick', () => {
       controlButtons.appendChild(closeBtn);
       header.appendChild(logo);
       header.appendChild(controlButtons);
-      
       controlsRow.appendChild(formatBtn);
       controlsRow.appendChild(pinLabel);
-
       wrapper.appendChild(header);
       wrapper.appendChild(controlsRow);
       wrapper.appendChild(textarea);
