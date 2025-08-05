@@ -1009,32 +1009,24 @@ zoomContainer.addEventListener('dblclick', () => {
         return path.join(' > ');
       }
 
-      // *** NEW: Function to get only actively-applied styles, ignoring browser defaults ***
       function getActiveCssText(el) {
           if (!el) return '';
           
-          // Use a Map to store unique properties, respecting specificity (first one wins)
           const activeStyles = new Map();
           let currentEl = el;
 
-          // Walk up the DOM tree from the element to the body
           while (currentEl && currentEl !== document.body && currentEl !== document) {
-              // Get inline styles first, as they have the highest specificity for this element
               for (const prop of currentEl.style) {
                   if (!activeStyles.has(prop)) {
                       activeStyles.set(prop, currentEl.style.getPropertyValue(prop));
                   }
               }
 
-              // Get styles from matched CSS rules (author stylesheets)
-              // Note: getMatchedCSSRules is non-standard but works in Chromium-based browsers
               const matchedRules = window.getMatchedCSSRules ? window.getMatchedCSSRules(currentEl, '') : [];
               if (matchedRules) {
-                  // Iterate backwards to respect rule order (more specific rules come later)
                   for (let i = matchedRules.length - 1; i >= 0; i--) {
                       const rule = matchedRules[i];
                       for (const prop of rule.style) {
-                          // If we haven't already stored this property from a more specific rule, add it
                           if (!activeStyles.has(prop)) {
                               activeStyles.set(prop, rule.style.getPropertyValue(prop));
                           }
@@ -1044,7 +1036,6 @@ zoomContainer.addEventListener('dblclick', () => {
               currentEl = currentEl.parentElement;
           }
 
-          // Format the collected styles into a CSS string
           let cssText = '';
           activeStyles.forEach((value, prop) => {
               cssText += `    ${prop}: ${value};\n`;
@@ -1165,7 +1156,8 @@ zoomContainer.addEventListener('dblclick', () => {
             removeActiveHighlight();
             highlightElement(e.target);
             const path = getCssPath(e.target);
-    -       const simplifiedPath = simplifySelector(path);
+            // *** THIS IS THE CORRECTED LINE ***
+            const simplifiedPath = simplifySelector(path);
             pathDisplay.value = simplifiedPath;
         } else if (wrapper.contains(e.target) && lastHighlighted) {
             removeHighlight();
@@ -1183,7 +1175,6 @@ zoomContainer.addEventListener('dblclick', () => {
               const simplifiedPath = simplifySelector(getCssPath(targetElement));
 
                 if (e.shiftKey) {
-                    // *** MODIFIED: Use the new getActiveCssText function ***
                     const activeCss = getActiveCssText(targetElement);
                     const newRule = `${simplifiedPath} {\n${activeCss}}\n\n`;
                     textarea.value += newRule;
@@ -1260,7 +1251,7 @@ zoomContainer.addEventListener('dblclick', () => {
               switch (closestEdge) {
                   case 'top':     wrapper.style.top = '0px'; wrapper.style.left = preMinimizeDimensions.left; break;
                   case 'bottom':  wrapper.style.bottom = '0px'; wrapper.style.left = preMinimizeDimensions.left; break;
-                  case 'left':    wrapper.style.left = '0px'; wrapper.style.top = preMinimizeDimensions.top; break;
+  _                case 'left':    wrapper.style.left = '0px'; wrapper.style.top = preMinimizeDimensions.top; break;
                   case 'right':   wrapper.style.right = '0px'; wrapper.style.top = preMinimizeDimensions.top; break;
               }
           } else {
