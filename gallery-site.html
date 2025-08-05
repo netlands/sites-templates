@@ -1010,38 +1010,74 @@ zoomContainer.addEventListener('dblclick', () => {
       }
 
 
-      function getActiveCssText(el) {
-        if (!el) return '';
-        
-        const activeStyles = new Map();
-        let currentEl = el;
+/**
+ * Generates a CSS string of all explicitly set styles for a given element,
+ * excluding default browser styles and temporary highlighting styles from the tool.
+ *
+ * @param {HTMLElement} el The element to get the styles from.
+ * @returns {string} The formatted CSS string.
+ */
+function getActiveCssText(el) {
+    // Return an empty string if no element is provided.
+    if (!el) {
+        console.warn("No element provided to getActiveCssText.");
+        return '';
+    }
 
-        // Temporarily remove the highlight to prevent it from being copied
-        const originalOutline = currentEl.style.outline;
-        currentEl.style.outline = 'initial'; 
+    // A map to store the styles that are not browser defaults.
+    const activeStyles = new Map();
+    const currentEl = el;
 
-        const computedStyle = window.getComputedStyle(currentEl);
-        for (const prop of computedStyle) {
-            if (computedStyle.getPropertyValue(prop)) {
-                activeStyles.set(prop, computedStyle.getPropertyValue(prop));
-            }
-        }
+    // Store the original outline and resize styles to prevent the tool's own styles from being captured.
+    const originalOutline = currentEl.style.outline;
+    const originalResize = currentEl.style.resize;
 
-        // Restore the original outline
-        currentEl.style.outline = originalOutline;
+    // Temporarily remove the highlight and resize styles before getting computed styles.
+    currentEl.style.outline = 'initial';
+    currentEl.style.resize = 'initial';
 
-        let cssText = '';
-        activeStyles.forEach((value, prop) => {
-          // Add a basic filter for empty values and the tool's styles
-          if (value && prop !== 'outline' && prop !== 'resize') {
-            cssText += `    ${prop}: ${value};\n`;
-          }
-        });
+    // Create a temporary, empty element of the same tag name to get default browser styles.
+    const tempEl = document.createElement(currentEl.tagName);
+    tempEl.style.display = 'none'; // Keep it hidden.
+    document.body.appendChild(tempEl);
 
-        return cssText;
-      }
+    // Get the computed styles for both the target element and the temporary element.
+    const elementStyles = window.getComputedStyle(currentEl);
+    const defaultStyles = window.getComputedStyle(tempEl);
 
-    
+    // Iterate over all computed style properties.
+    for (const prop of elementStyles) {
+        // Check if the property's value on the target element is different from the default.
+        const value = elementStyles.getPropertyValue(prop);
+        if (value && value !== defaultStyles.getPropertyValue(prop)) {
+            // Also, explicitly check for and exclude any properties added by the tool.
+            if (prop !== 'outline' && prop !== 'resize') {
+                activeStyles.set(prop, value);
+            }
+        }
+    }
+
+    // Restore the original outline and resize styles on the element.
+    currentEl.style.outline = originalOutline;
+    currentEl.style.resize = originalResize;
+
+    // Remove the temporary element from the DOM.
+    document.body.removeChild(tempEl);
+
+    // Build the final CSS string from the filtered styles.
+    let cssText = '';
+    activeStyles.forEach((value, prop) => {
+        // Format the output for readability.
+        cssText += `    ${prop}: ${value};\n`;
+    });
+
+    return cssText;
+}
+
+
+
+
+
       function simplifySelector(selector) {
           selector = " " + selector; 
           return selector.replace(/:nth-child\(\d+\)/g, '').replace(/\s*>\s*/g, ' ').replace(/\s+/g, ' ').trim();
