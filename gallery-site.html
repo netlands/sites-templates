@@ -959,7 +959,7 @@ zoomContainer.addEventListener('dblclick', () => {
       const pathLabel = document.createElement('label');
       pathLabel.htmlFor = 'pathToggle';
       // *** MODIFIED: Key combination changed to Ctrl+Alt+Click ***
-      pathLabel.innerText = ' Show path (Ctrl+Click: selector, Ctrl+Alt+Click: style)';
+      pathLabel.innerText = ' Show path (Ctrl+Click: insert selector, Ctrl+Alt+Click: insert active style)';
       Object.assign(pathLabel.style, { display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '14px', cursor: 'pointer' });
       pathLabel.insertBefore(pathCheckbox, pathLabel.firstChild);
 
