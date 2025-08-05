@@ -1156,7 +1156,6 @@ zoomContainer.addEventListener('dblclick', () => {
             removeActiveHighlight();
             highlightElement(e.target);
             const path = getCssPath(e.target);
-            // *** THIS IS THE CORRECTED LINE ***
             const simplifiedPath = simplifySelector(path);
             pathDisplay.value = simplifiedPath;
         } else if (wrapper.contains(e.target) && lastHighlighted) {
@@ -1251,7 +1250,7 @@ zoomContainer.addEventListener('dblclick', () => {
               switch (closestEdge) {
                   case 'top':     wrapper.style.top = '0px'; wrapper.style.left = preMinimizeDimensions.left; break;
                   case 'bottom':  wrapper.style.bottom = '0px'; wrapper.style.left = preMinimizeDimensions.left; break;
-  _                case 'left':    wrapper.style.left = '0px'; wrapper.style.top = preMinimizeDimensions.top; break;
+                  case 'left':    wrapper.style.left = '0px'; wrapper.style.top = preMinimizeDimensions.top; break;
                   case 'right':   wrapper.style.right = '0px'; wrapper.style.top = preMinimizeDimensions.top; break;
               }
           } else {
