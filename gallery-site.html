@@ -959,7 +959,7 @@ zoomContainer.addEventListener('dblclick', () => {
       const pathLabel = document.createElement('label');
       pathLabel.htmlFor = 'pathToggle';
       // *** MODIFIED: Key combination changed to Ctrl+Alt+Click ***
-      pathLabel.innerText = ' Show path (Ctrl+Click: insert selector, Ctrl+Alt+Click: insert active style)';
+      pathLabel.innerText = ' Show path (Ctrl+Click: selector, Ctrl+Alt+Click: active style)';
       Object.assign(pathLabel.style, { display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'monospace', fontSize: '14px', cursor: 'pointer' });
       pathLabel.insertBefore(pathCheckbox, pathLabel.firstChild);
 
@@ -1011,47 +1011,6 @@ zoomContainer.addEventListener('dblclick', () => {
       }
 
       function getActiveCssText(el) {
-        if (!el) return '';
-        
-        const activeStyles = new Map();
-        let currentEl = el;
-
-        // Temporarily remove the highlight to prevent it from being copied
-        const originalOutline = currentEl.style.outline;
-        currentEl.style.outline = 'initial'; // Use initial to reset it without removing a potential user-defined outline
-
-        const computedStyle = window.getComputedStyle(currentEl);
-        for (const prop of computedStyle) {
-            if (computedStyle.getPropertyValue(prop)) {
-                // This ensures we get the actual value, not just the name
-                activeStyles.set(prop, computedStyle.getPropertyValue(prop));
-            }
-        }
-
-        // Restore the original outline
-        currentEl.style.outline = originalOutline;
-
-        // Filter out the highlight styles if they were originally present
-        const outlineValue = activeStyles.get('outline');
-        if (outlineValue && (outlineValue.includes('dashed #0077ff') || outlineValue.includes('dotted red'))) {
-          activeStyles.delete('outline');
-        }
-
-        let cssText = '';
-        activeStyles.forEach((value, prop) => {
-          // Only include non-inherited properties (or properties that differ from the parent)
-          // This is an advanced check, but for a simpler fix, we can just grab all computed styles.
-          // Let's stick with the simpler approach for now to avoid complexity.
-          
-          // Add a basic filter for empty values and the tool's styles
-          if (value && prop !== 'outline' && prop !== 'resize') {
-            cssText += `    ${prop}: ${value};\n`;
-          }
-        });
-
-        return cssText;
-      }
-
           if (!el) return '';
           
           const activeStyles = new Map();
@@ -1418,11 +1377,10 @@ zoomContainer.addEventListener('dblclick', () => {
       // Initial calls
       updateDockIconOrientation();
       loadPinnedCss();
-    });
+    }
+  });
 })();
 </script>
-
-
 
 </body>
 </html>
