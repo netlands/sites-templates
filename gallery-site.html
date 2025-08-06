@@ -444,12 +444,6 @@ a.active-link {
   cursor: default;          /* Optional: change cursor */
 }
 
-.nav-section .moving {
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  transform: translateY(-10px);
-  opacity: 0;
-}
-
 
 
 
@@ -515,19 +509,12 @@ a.active-link {
 
 
 
-      const activeLink = document.querySelector(".nav-section .active-link");
+    const activeLink = document.querySelector(".nav-section .active-link");
 
-      if (activeLink) {
-        const container = activeLink.parentElement;
-
-        // Optional animation class
-        activeLink.classList.add("moving");
-
-        setTimeout(() => {
-          activeLink.classList.remove("moving");
-          container.insertBefore(activeLink, container.firstElementChild);
-        }, 300); // Match CSS transition duration
-      }
+    if (activeLink) {
+      const container = activeLink.parentElement;
+      container.insertBefore(activeLink, container.firstElementChild);
+    }
 
 
 
