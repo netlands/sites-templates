@@ -444,12 +444,6 @@ a.active-link {
   cursor: default;          /* Optional: change cursor */
 }
 
-li.moving {
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  transform: translateY(-10px);
-  opacity: 0;
-}
-
 
 </style>
 <script>
@@ -511,27 +505,17 @@ li.moving {
       }
     });
 
-      const activeLink = document.querySelector("a.active-link");
+
+    const activeLink = document.querySelector("a.active-link");
 
     if (activeLink) {
       const li = activeLink.closest("li");
       const ul = li?.parentElement;
 
       if (li && ul && ul.tagName === "UL") {
-        // Add animation class
-        li.classList.add("moving");
-
-        // Wait for animation to play, then move
-        setTimeout(() => {
-          li.classList.remove("moving");
-          ul.insertBefore(li, ul.firstElementChild);
-        }, 300); // Match CSS transition duration
+        ul.insertBefore(li, ul.firstElementChild);
       }
     }
-
-
-
-
 
 
     const magic = document.querySelector('.made-with-magic');
