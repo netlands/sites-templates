@@ -444,6 +444,9 @@ a.active-link {
   cursor: default;          /* Optional: change cursor */
 }
 
+a.active-link.title-link{
+ font-size: 26px;
+}
 
 
 
@@ -507,12 +510,11 @@ a.active-link {
       }
     });
 
-
-
     const activeLink = document.querySelector(".nav-section .active-link");
 
     if (activeLink) {
       const container = activeLink.parentElement;
+      activelink.classList.add("title-link");
       container.insertBefore(activeLink, container.firstElementChild);
     }
 
