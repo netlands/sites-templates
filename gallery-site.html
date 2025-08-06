@@ -444,6 +444,14 @@ a.active-link {
   cursor: default;          /* Optional: change cursor */
 }
 
+.nav-section .moving {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+
+
 
 </style>
 <script>
@@ -506,16 +514,23 @@ a.active-link {
     });
 
 
-    const activeLink = document.querySelector("a.active-link");
 
-    if (activeLink) {
-      const li = activeLink.closest("li");
-      const ul = li?.parentElement;
+      const activeLink = document.querySelector(".nav-section .active-link");
 
-      if (li && ul && ul.tagName === "UL") {
-        ul.insertBefore(li, ul.firstElementChild);
+      if (activeLink) {
+        const container = activeLink.parentElement;
+
+        // Optional animation class
+        activeLink.classList.add("moving");
+
+        setTimeout(() => {
+          activeLink.classList.remove("moving");
+          container.insertBefore(activeLink, container.firstElementChild);
+        }, 300); // Match CSS transition duration
       }
-    }
+
+
+
 
 
     const magic = document.querySelector('.made-with-magic');
