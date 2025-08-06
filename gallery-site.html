@@ -437,6 +437,15 @@ html.main-page h3.post-title, html.main-page div.blog-pager {
 }
 
 
+a.active-link {
+  pointer-events: none;     /* Makes the link unclickable */
+  color: gray;              /* Changes color to gray */
+  text-decoration: none;    /* Optional: remove underline */
+  cursor: default;          /* Optional: change cursor */
+}
+
+
+
 </style>
 <script>
 
@@ -486,6 +495,18 @@ html.main-page h3.post-title, html.main-page div.blog-pager {
         closeMenu();
       }
     });
+
+    const currentUrl = window.location.href.split("#")[0]; // Ignore hash
+    const links = document.querySelectorAll("a[href]");
+
+    links.forEach(link => {
+      const linkUrl = new URL(link.href, document.baseURI).href.split("#")[0];
+      if (linkUrl === currentUrl) {
+        link.classList.add("active-link");
+      }
+    });
+
+
 
 
 
