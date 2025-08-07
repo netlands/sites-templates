@@ -1,9 +1,14 @@
 <html>
 <head>
+        <!-- Preconnect for faster DNS and TLS setup -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Castoro:ital@0;1&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+        
+        <!-- Non-blocking preload for Castoro and Work Sans -->
+        <link rel="preload" href="https://fonts.googleapis.com/css2?family=Castoro:ital@0;1&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        
+        <!-- Non-blocking preload for Material Symbols Outlined -->
+        <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" as="style" onload="this.onload=null;this.rel='stylesheet'">
         <link rel="icon" href="data:,"/>
 
 </head>
@@ -1492,4 +1497,5 @@ function getActiveCssText(el) {
 
 </body>
 </html>
+
 
