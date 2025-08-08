@@ -1,372 +1,847 @@
-// htmlparser.js
+/**
+ * Fetches a resource from cache or network, and caches the response.
+ * @param {string} url - The URL of the resource to fetch.
+ * @param {ExecutionContext} ctx - The execution context for waitUntil.
+ * @param {number} cacheDurationSeconds - The duration to cache the resource in seconds.
+ * @returns {Promise<Response>}
+ */
+async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
+  const cache = caches.default;
+  let response = await cache.match(url);
 
-/* available functions: 
- querySelector(html, selector, options = {})
- querySelectorAll(html, selector, options = {})
- getElementById(html, id, options = {})
- getElementsByClassName(html, className, options = {})
- getElementsByTagName(html, tagName, options = {})
- getElementsByName(html, name, options = {}) 
- getAttribute(html, selector, attributeName)
+  if (!response) {
+    console.log(`Cache miss for ${url}. Fetching from origin.`);
+    const originResponse = await fetch(url);
 
-Example use:
- import { querySelector, querySelectorAll } from './htmlparser.js'
+    if (originResponse.ok) {
+      // Create a new headers object to avoid modifying the original response headers.
+      const headers = new Headers(originResponse.headers);
+      headers.set('Cache-Control', `max-age=${cacheDurationSeconds}`);
 
- default: const outerHtmlContent = await querySelector(html, 'div'); // No options, or { returnInnerHtml: false }
- return innerHTML: const innerHtmlContent = await querySelector(html, 'div', { returnInnerHtml: true });
- strip all tags: const plainTextContent = await querySelector(html, 'div', { returnInnerHtml: true, stripTags: true });
+      // Create a new response to cache, as the body can only be read once.
+      response = new Response(originResponse.body, {
+        status: originResponse.status,
+        statusText: originResponse.statusText,
+        headers: headers // Use the new headers object
+      });
+      
+      // Use waitUntil to ensure caching completes even after the response is sent.
+      // We clone the response because it needs to be returned and cached simultaneously.
+      ctx.waitUntil(cache.put(url, response.clone()));
+    } else {
+        // Return the error response directly if the fetch failed.
+        return originResponse;
+    }
+  }
+  
+  return response;
+}
+
+/** * Checks if a resource exists using a HEAD request. This is faster than GET. 
+ * @param {string} url - The URL to check. 
+ * @returns {Promise<boolean>} 
+ */ 
+async function checkResourceExists(url) { 
+  try { 
+    const res = await fetch(url, { method: 'HEAD' }); 
+    return res.ok; 
+  } catch (err) { 
+    console.error(`Failed to check resource existence for ${url}:`, err); 
+    return false; 
+  } 
+}
+
+/**
+ * Fetches and caches the main HTML template.
+ * @param {string} url The URL of the HTML file.
+ * @param {ExecutionContext} ctx The execution context.
+ * @returns {Promise<string>} The HTML content.
+ */
+async function cacheContent(url, ctx) {
+  const cache = caches.default;
+  const cacheKey = new Request(url);
+  const cacheDurationSeconds = 7200; // 2 hours
+
+  let response = await cache.match(cacheKey);
+
+  if (!response) {
+    console.log(`HTML cache miss for ${url}. Fetching from origin.`);
+    const originResponse = await fetch(url);
+
+    if (originResponse.ok) {
+      const headers = new Headers(originResponse.headers);
+      headers.set('Cache-Control', `max-age=${cacheDurationSeconds}, public`);
+      response = new Response(originResponse.body, {
+        status: originResponse.status,
+        statusText: originResponse.statusText,
+        headers: headers
+      });
+      ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    } else {
+      // Return an empty string or a default template on failure
+      return '<html><body><h1>Error Loading Template</h1></body></html>';
+    }
+  }
+
+  return response.text();
+}
+
+/**
+ * Fetches and caches domain-specific CSS.
+ * @param {string} url The URL of the CSS file.
+ * @param {ExecutionContext} ctx The execution context.
+ * @returns {Promise<string>} The CSS content.
+ */
+async function cacheStyling(url, ctx) {
+  const cache = caches.default;
+  const cacheKey = new Request(url);
+  const cacheDurationSeconds = 86400; // 24 hours
+
+  let response = await cache.match(cacheKey);
+
+  if (!response) {
+    console.log(`CSS cache miss for ${url}. Fetching from origin.`);
+    const originResponse = await fetch(url);
+
+    if (originResponse.ok) {
+      const headers = new Headers(originResponse.headers);
+      headers.set('Cache-Control', `max-age=${cacheDurationSeconds}, public`);
+      response = new Response(originResponse.body, {
+        status: originResponse.status,
+        statusText: originResponse.statusText,
+        headers: headers
+      });
+      ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    } else {
+      // Fallback to empty string if fetching fails
+      return '';
+    }
+  }
+
+  return response.text();
+}
+
+/**
+ * Checks for the existence of a logo with a long-lived cache.
+ * @param {string} url The URL of the logo image.
+ * @param {ExecutionContext} ctx The execution context.
+ * @returns {Promise<boolean>} True if the logo exists, false otherwise.
+ */
+async function checkLogoExistsAndCache(url, ctx) {
+  const cache = caches.default;
+  const cacheKey = new Request(url + '-exists');
+  const cacheDurationSeconds = 86400; // 24 hours
+
+  let cachedResponse = await cache.match(cacheKey);
+
+  if (cachedResponse) {
+    return JSON.parse(await cachedResponse.text());
+  }
+
+  const exists = await checkResourceExists(url);
+  
+  const newResponse = new Response(JSON.stringify(exists), {
+    headers: {
+      'Cache-Control': `max-age=${cacheDurationSeconds}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  ctx.waitUntil(cache.put(cacheKey, newResponse));
+
+  return exists;
+}
+
+
+import { test, querySelector, querySelectorAll, getAttribute } from './htmlparser.js'
+import { templateTagParser, injectLayoutClasses, cleanTitle, FinalCleanupHandler } from './templatehelper.js';
+
+let testHtml = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="A small, structured HTML file for testing purposes."><title>Test HTML Structure</title><link rel="stylesheet" href="styles.css"></head><body><header><h1 class="title">Welcome to My Test Page</h1><h2 id="sub-heading">Subheading: Testing HTML Structure</h2></header><main><div><h2 id="part1">Part 1</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div><div><h2 id="part2">Part 2</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div></main><footer><h2 id="footer-heading">Footer Section</h2><p class="footer-text">Thank you for visiting this test page.</p></footer></body></html>';
+
+export default {
+  async fetch(request, env, ctx) {
+    
+    const originalResponse = await fetch(request);
+    let html = await originalResponse.text();
+
+    const url = new URL(request.url);
+    const path = url.pathname + (url.search || '');
+
+    const useHardCodedMenu = true;
+    const bloggerAPIkey = '';
+    const blogId = '';
+
+    let menuHtml = ''
+    /* if menu links are not hard-coded use {{menu:n}} tags in page titles to create navigation menu */
+    if (!useHardCodedMenu) {
+      // get menu items
+      const pageListUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages?fetchBodies=false&status=live&key=${bloggerAPIkey}`;
+      const pageListRes = await fetchAndCache(pageListUrl, ctx, 3600);
+
+      if (!pageListRes.ok) {
+        return new Response(`Feed fetch failed: ${pageListRes.status}`, { status: 502 });
+      }
+
+      const pagesJson = await pageListRes.json();    
+      const menuArray = getMenuEntries(pagesJson);
+      menuHtml = renderMenuLinks(menuArray);
+    }
+
+
+    // Determine page type
+    let pageClass = 'unknown-page';
+
+    if (path === '/') {
+      // get the index page
+      pageClass = 'main-page';
+      url.pathname = '/p/home.html';
+      const response = await fetchAndCache(url.toString(), ctx, 3600);
+      html = await response.text();  
+
+      // main page specific styling
+      const imgRegex = /<img[^>]+src="([^"]+)"[^>]*>/i;
+
+      const firstImgMatch = html.match(imgRegex);
+      const bgImageURL = firstImgMatch?.[1];
+      const injectedCSS = bgImageURL
+        ? `<style>body { --bg-image: url('${bgImageURL}'); background-image: var(--bg-image); background-size: cover; background-repeat: no-repeat; background-position: center center; background-attachment: fixed; }</style>`
+        : '';
+      html = html.replace('</head>', `${injectedCSS}</head>`);
+      html = html.replace(imgRegex, '');
+
+      
+    } else if (/^\/\d{4}\/\d{2}\/.*\.html$/.test(path)) {
+      pageClass = 'post-page';
+      /* here we parse the post contents */
+
+const synonyms = {
+  title: ['title', 'name', 'titel', 'naam'],
+  artist: ['artist', 'creator', 'artiest'],
+  medium: ['medium'],
+  date: ['date', 'datum'],
+  year: ['year', 'jaar'],
+  period: ['period', 'periode'],
+  series: ['series', 'serie']
+};
+
+const renderOrder = Object.keys(synonyms);
+const prettify = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+// 1️⃣ Extract post-body <div> content
+const bodyHTML = await querySelector(html, 'div.post-body', { returnInnerHtml: true });
+
+
+// 2️⃣ Extract title
+const objectTitle = await querySelector(html, "div.post h3.post-title",{returnInnerHtml: true, stripTags: true});
+
+
+// 3️⃣ Parse individual field lines
+let parsed = {};
+let parsedRawKeys = {};
+let leftoverLines = [];
+
+// Step 1: Normalize HTML into clean lines
+let cleanHTML = bodyHTML
+  .replace(/\r\n|\r/g, '\n')                     // Normalize CRLF to LF
+  .replace(/<div[^>]*>/gi, '¶')                  // Replace opening <div> with pilcrow
+  .replace(/<\/div>/gi, '¶')                     // Replace closing </div> with pilcrow
+  .replace(/<br\s*\/?>/gi, '¶')                  // Replace <br> with pilcrow
+  .replace(/&nbsp;(?=\s*[:=])/gi, ' ')           // Replace nbsp before : or = with space
+  .replace(/(?<=[:=]\s*)&nbsp;/gi, '')           // Remove nbsp after :
+  .replace(/^(&nbsp;)+|(&nbsp;)+$/gi, '')        // Trim leading/trailing nbsp
+  .replace(/<[^>]+>/g, '')                       // Strip all other tags
+  .replace(/[ \t]+/g, ' ')                       // Normalize spacing
+  .replace(/¶+/g, '¶')                           // Collapse multiple pilcrows
+  .replace(/^\s*¶|¶\s*$/g, '');                  // Trim leading/trailing pilcrows
+  // .replace(/\s*¶\s*/g, '\n');                    // Convert pilcrow to actual line break
+
+
+const lines = cleanHTML
+  .split('¶') // .split('\n')
+  .map(line => line.trim())
+  .filter(Boolean); // Remove empty lines
+
+// Step 2: Parse structured lines using synonyms
+for (const line of lines) {
+  let matched = false;
+
+  for (const [canonicalKey, variants] of Object.entries(synonyms)) {
+    for (const variant of variants) {
+      const fieldRegex = new RegExp(`^${variant}\\s*[:=]\\s*(.*)$`, 'i');
+      const fieldMatch = line.match(fieldRegex);
+
+      if (fieldMatch && fieldMatch[1] !== undefined) {
+        parsed[canonicalKey] = fieldMatch[1].trim();
+        parsedRawKeys[canonicalKey] = variant;
+        matched = true;
+        break;
+      }
+    }
+    if (matched) break;
+  }
+
+  if (!matched) {
+    leftoverLines.push(line);
+  }
+}
+
+// Step 3: Inject fallback title if missing
+if (!parsed.title && objectTitle) {
+  parsed.title = objectTitle.trim();
+}
+
+
+
+// 4️⃣ Extract labels
+let labels = await querySelectorAll(html, "span.post-labels a", {
+  returnInnerHtml: true,
+  stripTags: true
+});
+
+// 5️⃣ Extract image & link
+const imageLink = await getAttribute(html,"div.post-body div.separator a", "href");
+const imageUrl = await getAttribute(html,"div.post-body div.separator a img", "src");
+
+// 6️⃣ Render HTML
+let cardHTML = '<div class="card">\n';
+
+renderOrder.forEach(key => {
+  if (parsed[key]) {
+    const prettyKey = prettify(key);
+    cardHTML += `  <div class="field object-${key}">\n    <span class="key">${prettyKey}</span>: <span class="value">${parsed[key]}</span>\n  </div>\n`;
+  }
+});
+
+Object.entries(parsed).forEach(([key, value]) => {
+  if (!renderOrder.includes(key)) {
+    const prettyKey = prettify(key);
+    cardHTML += `  <div class="field object-${key}">\n    <span class="key">${prettyKey}</span>: <span class="value">${value}</span>\n  </div>\n`;
+  }
+});
+
+cardHTML += '</div>\n';
+
+let notesHTML = '<div class="notes">\n';
+for (const line of leftoverLines) {
+  notesHTML += `  <p>${line}</p>\n`;
+}
+notesHTML += '</div>\n';
+
+let labelHTML = '';
+if (labels.length > 0) {
+  labelHTML += `<div class="object-labels">\n`;
+  for (const label of labels) {
+    const safeLabel = encodeURIComponent(label);
+    labelHTML += `  <span class="object-label"><a href="/search/label/${safeLabel}">${label}</a></span>\n`;
+  }
+  labelHTML += `</div>\n`;
+}
+
+let imageHTML = '';
+if (imageLink && imageUrl) {
+  imageHTML += `<div class="object-image"><div class="image-frame">\n`;
+  //imageHTML += `  <a href="${imageLink}">\n`;
+  imageHTML += `    <img src="${imageUrl}" alt="${objectTitle}" data-original-src="${imageLink}" class="view-original" />\n`;
+  // imageHTML += `  </a>\n`;
+  imageHTML += `</div></div>\n`;
+}
+
+let titleHTML = '';
+if (objectTitle) {
+  titleHTML = `<h3 class="object-title">${objectTitle}</h3>\n`;
+}
+
+let objectHTML = titleHTML + imageHTML + cardHTML + notesHTML + labelHTML;
+
+// uncomment to debug original formatting issues
+// objectHTML = objectHTML + "<br/>==========================================<br/><br/>" + cleanHTML + "<br/>--------------------------------------------------------------------------------<br/><br/>" + bodyHTML + "<br/>==========================================<br/><br/>";
+html = insertBeforePost(html, objectHTML);
+
+
+
+    } else if (/^\/p\/.*\.html$/.test(path)) {
+      pageClass = 'static-page';
+    } else if (/^\/search\/label\/[^/]+/.test(path)) {
+      pageClass = 'label-search';
+    } else if (/^\/search\?q=/.test(path)) {
+      pageClass = 'full-search';
+    } else if (url.pathname === '/atom') {
+      const format = url.searchParams.get('alt'); // Checks for ?alt=json
+      const feedUrl = format === 'json'
+        ? 'https://' + url.hostname + '/feeds/posts/default?alt=json'
+        : 'https://' + url.hostname + '/feeds/posts/default';
+    
+      try {
+        const feedRes = await fetchAndCache(feedUrl, ctx, 3600);
+    
+        if (!feedRes.ok) {
+          return new Response(`Feed fetch failed: ${feedRes.status}`, { status: 502 });
+        }
+    
+        const body = await feedRes.text();
+        const contentType = feedRes.headers.get('Content-Type') || (format === 'json' ? 'application/json' : 'application/atom+xml');
+    
+        return new Response(body, {
+          status: 200,
+          headers: {
+            'Content-Type': contentType,
+            'Cache-Control': 'no-store'
+          }
+        });
+    
+      } catch (err) {
+        return new Response(`Feed error: ${err.message}`, { status: 500 });
+      }
+    } else if (url.pathname === '/json') {
+      const feedUrl = 'https://' + url.hostname + '/feeds/posts/default?alt=json';
+    
+      try {
+        const feedRes = await fetchAndCache(feedUrl, ctx, 3600);
+    
+        if (!feedRes.ok) {
+          return new Response(`Feed fetch failed: ${feedRes.status}`, { status: 502 });
+        }
+    
+        const json = await feedRes.text(); // Use text() to stream untouched JSON
+        return new Response(json, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store'
+          }
+        });
+      } catch (err) {
+        return new Response(`Feed error: ${err.message}`, { status: 500 });
+      }
+    } else if (url.pathname === '/favicon.ico') {
+      return new Response(null, { status: 204 });
+    }
+
+/* 
+// insert JavaScript variable inside page   
+class ScriptInjector {
+  constructor(variableName, value) {
+    this.variableName = variableName;
+    this.value = value;
+  }
+
+  element(element) {
+    const scriptContent = `window.${this.variableName} = ${JSON.stringify(this.value)};`;
+    element.append(`<script>${scriptContent}</script>`, { html: true });
+  }
+}
+
+async function handleRequest(request) {
+  const response = await fetch(request);
+  return new HTMLRewriter()
+    .on('head', new ScriptInjector('myVar', 'Hello from Cloudflare'))
+    .transform(response);
+}
+// rewriter.on('head', new ScriptInjector('myVar', 'Hello from Cloudflare'))
 */
 
-const debug = true;
 
-if (!debug) {
-  console.log = () => {};
+    const githubUrl = "https://raw.githubusercontent.com/netlands/sites-templates/main/gallery-site.html";
+    // Use the new cacheContent function for the HTML template
+    const htmlSnippet = await cacheContent(githubUrl, ctx);
+
+    // Extract inner head and body using regex
+    const headContent = htmlSnippet.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+    const bodyContent = htmlSnippet.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+
+    const extraHeadContent = headContent?.[1] || '';
+    const extraBodyContent = bodyContent?.[1] || '';
+
+// Extract the original body content
+const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+const originalBodyContent = bodyMatch?.[1]?.trim() || '';
+const wrappedMain = `<main>\n${originalBodyContent}\n</main>`;
+
+// Inject <main> right after </header> in the template body content
+let newBodyContent = extraBodyContent;
+const headerCloseTag = '</header>';
+const headerIndex = extraBodyContent.indexOf(headerCloseTag);
+
+if (headerIndex !== -1) {
+  const beforeHeader = extraBodyContent.slice(0, headerIndex + headerCloseTag.length);
+  const afterHeader = extraBodyContent.slice(headerIndex + headerCloseTag.length);
+  newBodyContent = `${beforeHeader}\n${wrappedMain}\n${afterHeader}`;
+} else {
+  // Fallback: just prepend main if header not found
+  newBodyContent = `${wrappedMain}\n${extraBodyContent}`;
 }
 
-/**
- * A simple test function to verify imports.
- * @returns {string} A greeting string.
- */
-export function test() {
-  return "Hello World!";
-}
+const { tags, recent } = await getMetaDataWithTimeout(url, ctx);  
 
-// List of HTML void elements (self-closing tags)
-const VOID_ELEMENTS = new Set([
-  "area", "base", "br", "col", "embed", "hr", "img", "input",
-  "link", "meta", "param", "source", "track", "wbr"
-]);
 
-/**
- * Helper to construct the opening tag string with attributes.
- * @param {Element} el The HTMLRewriter Element object.
- * @returns {string} The opening HTML tag string.
- */
-function _openTag(el) {
-  let tag = `<${el.tagName}`;
-  for (const [name, value] of el.attributes) {
-    // Ensure attribute values are properly escaped if they contain quotes
-    const escapedValue = value.replace(/"/g, '&quot;');
-    tag += ` ${name}="${escapedValue}"`;
-  }
-  return tag + '>';
-}
+// Rebuild the body
+html = html
+  .replace('</head>', `${extraHeadContent}\n</head>`)
+  // A simple check to ensure the match was successful before trying to use it.
+  if (bodyMatch && bodyMatch[0]) {
+    html = html.replace(bodyMatch[0], `<body>\n${newBodyContent}\n</body>`);
+  } else {
+    // Handle the case where no match was found.
+    console.error("Could not find the <body> tag to replace.");
+  }
 
-/**
- * Collector class that captures the full outer HTML of matched elements.
- * It acts as a state machine, toggled by the specific selector handler.
- */
-class Collector {
-  /**
-   * @param {object} options - Configuration options for the collector.
-   * @param {string} [options.attributeName=null] - If provided, the collector will extract this attribute's value.
-   */
-  constructor(options = {}) {
-    this.results = [];
-    this.options = {
-      attributeName: options.attributeName || null
-    };
 
-    // State machine properties for capturing full HTML content
-    this.isCapturing = false;
-    this.captureBuffer = '';
-    this.currentTagName = ''; // Store the tag name of the element currently being captured
+    // add some personalizatipon based on the title
+     let sitename = 'The Gallery'; // default fallback
 
-    console.log("Collector: Constructor called with options:", this.options);
-  }
+    // Try to extract from data-sitename in the <html> tag
+    const htmlTagMatch = html.match(/<html[^>]*?\sdata-sitename=["']([^"']+)["']/i);
 
-  /**
-   * This handler is for the main selector. It acts as a switch to start and stop capturing.
-   * @param {Element} el The HTMLRewriter Element object.
-   */
-  element(el) {
-    // Fast path for attribute extraction, which doesn't need complex buffering.
-    if (this.options.attributeName) {
-      const attributeValue = el.getAttribute(this.options.attributeName);
-      console.log(`Collector: Found attribute '${this.options.attributeName}' with value: ${attributeValue}`);
-      // Push the attribute value directly, or an empty string if null
-      this.results.push(attributeValue !== null ? attributeValue : "");
-      return;
-    }
+    if (htmlTagMatch) {
+      sitename = htmlTagMatch[1];
+    }
+    
+    // add site specific style sheet
+    const sanitizedName = sitename.replace(/\s+/g, '').toLowerCase();
+    const styleUrl = `https://raw.githubusercontent.com/netlands/sites-templates/main/${sanitizedName}.css`;
+    let inlineCSS = '';
 
-    // If we are already capturing, it means we have a nested match.
-    // We reset the buffer for a new capture.
-    console.log("Collector: Main selector matched:", el.tagName);
-    this.isCapturing = true;
-    this.captureBuffer = ''; // Reset buffer for each new match.
-    this.currentTagName = el.tagName; // Store the tag name for later use
+    try {
+      // Use the new cacheStyling function for the CSS
+      inlineCSS = await cacheStyling(styleUrl, ctx);
+    } catch (err) {
+      console.error(`CSS fetch failed: ${err}`);
+    }
 
-    // Start capturing the opening tag of the matched element
-    this.captureBuffer += _openTag(el);
+    const logotype = "png"; // svg
+    let LOGO_URL = 'https://raw.githubusercontent.com/netlands/sites-templates/main/' + sanitizedName + '-logo.' + logotype;
+    const logoExists = await checkLogoExistsAndCache(LOGO_URL, ctx);
+   
+    const rewriter = new HTMLRewriter()
+      .on('html', {
+        element(el) {
+          const existing = el.getAttribute('class');
+          el.setAttribute('class', existing ? `${existing} ${pageClass}` : pageClass);
+        }
+      })
+      .on('span.sitename', {
+        element(el) {
+          el.setInnerContent(sitename, { html: false });
+        }
+      })      
+      .on('div.logo-section', {
+        element(el) {
+          el.setInnerContent(`<span class="sitename">${sitename}</span>`, { html: true });
+        }
+      })
+      .on('body', {
+        element(el) {
+          const currentValue = el.getAttribute("class") || "";
+          el.setAttribute("class", `${currentValue} theme-${sanitizedName}`); 
+        }
+      })
+      .on('body', {
+        element(el) {
+          if (inlineCSS.trim()) {
+            el.append(`<style>\n${inlineCSS}\n</style>`, { html: true });
+          }
+        }
+      })
+      .on('main', {
+        element(el) {
+          if (Array.isArray(tags) && tags.length > 0) {
+            const tagMarkup = `<ul id="all-tags" hidden>\n` +
+              tags.map(tag => `  <li>${tag}</li>`).join('\n') +
+              `\n</ul>`;
+            el.prepend(tagMarkup, { html: true });
+          }
+        }
+      })
+      .on('div.logo-section', {
+        element(el) {
+          if (logoExists) {
+            el.setInnerContent(`<img src="${LOGO_URL}" alt="Logo">`, { html: true });
+          }
+        }
+      });
 
-    // The wildcard handler will build the content. We just need to know when the element ends.
-    el.onEndTag(() => {
-      console.log("Collector: Main selector ended:", this.currentTagName);
-      // Append the closing tag for non-void elements
-      if (!VOID_ELEMENTS.has(this.currentTagName.toLowerCase())) {
-        this.captureBuffer += `</${this.currentTagName}>`;
-      }
-      
-      // The captureBuffer should now contain the full outerHTML of the element.
-      this.results.push(this.captureBuffer);
-      console.log("Collector: Finalized content (raw outerHTML):", JSON.stringify(this.captureBuffer));
-      
-      this.isCapturing = false; // Turn off capture
-      this.captureBuffer = ''; // Clean up
-      this.currentTagName = ''; // Clear current tag name
-    });
-  }
-}
+      // Conditionally chage contents
+      if (pageClass === 'post-page') {
+        rewriter.on('div.post', {
+          element(el) {
+            el.setAttribute('style', 'display:none'); // or el.remove();
+          }
+        });
+      } 
 
-/**
- * Internal helper: Runs HTMLRewriter with a dual-handler setup.
- * @param {string} html The HTML string to parse.
- * @param {string} selector The CSS selector for elements to collect.
- * @param {object} [options={}] - Configuration options for the collector.
- * @returns {Promise<Collector>} A promise that resolves with the Collector instance.
- */
-async function _runRewriter(html, selector, options = {}) {
-  console.log("_runRewriter: Starting for selector:", selector, "with options:", options);
-  const collector = new Collector(options);
+      class MenuInjector {
+        constructor(menuHtml) {
+          this.menuHtml = menuHtml;
+        }
+      
+        element(element) {
+          element.prepend(this.menuHtml, { html: true });
+        }
+      }
+      
+      if (!useHardCodedMenu) { rewriter.on('div.nav-section.collapsible-menu', new MenuInjector(menuHtml)); }
+            
 
-  // Create a ReadableStream from the HTML string
-  const encoder = new TextEncoder();
-  const readableStream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoder.encode(html));
-      controller.close();
-    }
-  });
 
-  // Create a Response object from the ReadableStream
-  const responseStream = new Response(readableStream, {
-    headers: { 'content-type': 'text/html' }
-  });
+        // rewriter.on("a", new HideLinksByText(targets));
+         const targets = ["some text", "other text"];
 
-  // The wildcard handler captures all content when the collector's `isCapturing` flag is true.
-  const contentHandler = {
-    element(el) {
-      if (collector.isCapturing) {
-        // Capture the tagName of the nested element immediately
-        const nestedTagName = el.tagName; 
-        // Append the opening tag of nested elements
-        collector.captureBuffer += _openTag(el);
+         class HideLinksByText {
+          constructor(targets) {
+            this.targets = targets.map(t => t.toLowerCase());
+          }
+        
+          // Called when the <a> tag starts
+          element(el) {
+            el.setAttribute("data-should-remove", "false"); // default flag
+            el.tagName = "a"; // ensure it's an <a> tag
+          }
+        
+          // Called for each text chunk inside the <a>
+          text(textChunk) {
+            const content = textChunk.text.trim().toLowerCase();
+            if (this.targets.some(target => content.includes(target))) {
+              textChunk.before(""); // optional: blank out the text
+              textChunk.remove();   // remove the chunk
+              this.shouldRemove = true;
+            }
+          }
+        
+          // Called when the tag ends
+          end(el) {
+            if (this.shouldRemove) {
+              el.remove(); // now safely remove the whole <a> tag
+            }
+          }
+        }
+        
+ 
+        class ReplaceWordInElement {
+          constructor(selector, fromWord, toWord) {
+            this.selector = selector;
+            this.fromWord = fromWord;
+            this.toWord = toWord;
+          }
+        
+          element(el) {
+            // Optional: mark the element if needed
+            el.setAttribute("data-word-replaced", "true");
+          }
+        
+          text(textChunk) {
+            const replaced = textChunk.text.replace(
+              new RegExp(`\\b${this.fromWord}\\b`, 'gi'),
+              this.toWord
+            );
+            textChunk.replace(replaced);
+          }
+        }
 
-        // If it's not a void element, ensure its closing tag is captured
-        if (!VOID_ELEMENTS.has(nestedTagName.toLowerCase())) { // Use nestedTagName here
-          el.onEndTag(() => {
-            collector.captureBuffer += `</${nestedTagName}>`; // Use nestedTagName here
-          });
+        if (pageClass === 'label-search' || pageClass === 'full-search' ) {
+          // rewriter.on("a", new HideLinksByText(targets));
+          rewriter.on('div.status-msg-body', new ReplaceWordInElement('div.status-msg-body', 'posts', 'works'));
+          const tagsToRemove = ['a'];
+          class RemoveElement {
+            element(el) {
+              el.remove();
+            }
+          }
+          // Register each tag inside the target container
+          tagsToRemove.forEach(tag => {
+            rewriter.on(`div.status-msg-body ${tag}`, new RemoveElement());
+          });
+        }
+
+        // template related functions
+        // Use the single, unified parser for all content transformations
+        rewriter.on('*', new templateTagParser());      
+        html = injectLayoutClasses(html);     
+        //html = cleanTitle(html);
+
+        // remove unused blogger.com stylesheets
+        function cleanBloggerArtifacts(html) {
+          return html
+            // Remove <noscript> blocks
+            .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, '')
+
+            // Remove <link> to widget_css_bundle.css (any attribute order)
+            .replace(/<link\b[^>]*href=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widget_css_bundle\.css['"][^>]*>/gi, '')
+
+            // Remove <link> to authorization.css with any attributes, matching both 'www' and 'draft' subdomains
+            .replace(/<link\b[^>]*href=['"]https:\/\/(?:www|draft)\.blogger\.com\/dyn-css\/authorization\.css\?[^'"]+['"][^>]*>/gi, '')
+
+            // Remove <script> to NNNNNNN-widgets.js
+            .replace(/<script\b[^>]*src=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widgets\.js[''][^>]*><\/script>/gi, '')
+
+            // Remove inline <script> blocks containing _WidgetManager
+            .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, match => {
+              return /_WidgetManager\./.test(match) ? '' : match;
+            })
+
+            // Remove the <div id="searchSection">
+            .replace(/<div[^>]*id=["']searchSection["'][^>]*>[\s\S]*?<\/div>/gi, '')
+            .replace(/<div[^>]*class=["']blogger["'][^>]*>[\s\S]*?<\/div>/gi, '')
+            .replace(/<div[^>]*class=["']blog-feeds["'][^>]*>[\s\S]*?<\/div>/gi, '');
         }
-      }
-    },
-    text(chunk) {
-      if (collector.isCapturing) {
-        console.log("ContentHandler: capturing text", JSON.stringify(chunk.text));
-        collector.captureBuffer += chunk.text;
-      }
-    },
-    comments(comment) {
-      if (collector.isCapturing) {
-        console.log("ContentHandler: capturing comment");
-        collector.captureBuffer += `<!--${comment.text}-->`;
-      }
-    }
-  };
-  
-  // If we are only getting an attribute, we can use a much simpler setup.
-  if (options.attributeName) {
-      const rewriterResponse = new HTMLRewriter()
-        .on(selector, collector) // The collector's element handler has a fast path for attributes
-        .transform(responseStream);
-      await rewriterResponse.text(); // Drain the stream
-      return collector;
-  }
+      
+        
+    html  = cleanBloggerArtifacts(html);
+ 
+    html = html.replace(/&nbsp;/g, '\u00A0');
 
-  // Apply the dual HTMLRewriter transformation for full content capture
-  const rewriterResponse = new HTMLRewriter()
-    .on('*', contentHandler) // The general content handler for all elements/text/comments
-    .on(selector, collector) // The specific handler to toggle state and mark the start/end of the main element
-    .transform(responseStream);
+    rewriter.on('title', new FinalCleanupHandler());
+    rewriter.on('h3', new FinalCleanupHandler());
 
-  console.log("_runRewriter: Awaiting rewriterResponse.text() to drain the stream.");
-  // Drain the transformed stream to ensure all handlers are invoked
-  await rewriterResponse.text();
-  console.log("_runRewriter: rewriterResponse.text() completed. Collector results count:", collector.results.length);
-  return collector;
-}
+    return rewriter.transform(new Response(html, {
+      headers: { 'Content-Type': 'text/html' }
+    }));
+
+    /* return new Response(html, {
+      headers: { 'Content-Type': 'text/html' },
+    }); */
+  }
+};
 
 /**
- * Internal helper: Processes the raw captured HTML content based on options.
- * @param {string} content The raw HTML string (outer HTML of the matched element).
- * @param {object} options - Configuration options.
- * @param {boolean} [options.returnInnerHtml=false] - If true, returns innerHTML instead of outerHTML.
- * @param {boolean} [options.stripTags=false] - If true, strips HTML tags from the content. Only applies if returnInnerHtml is true.
- * @returns {string} The processed content string.
- */
-function _processContent(content, options) {
-  let processedContent = content;
+ * Asynchronously fetches a JSON feed, handles potential errors, and returns a sanitized list of entries.
+ * This function is designed to be resilient to non-existent hostnames, network issues, or malformed JSON.
+ * * @param {URL} url The URL object containing the hostname to fetch the feed from.
+ * @returns {Promise<{entries: Array<Object>}>} An object containing an array of feed entries.
+ * Returns `{ entries: [] }` on any error to ensure a consistent return type.
+ */
+async function getParsedJson(url, ctx) { // Add ctx as a parameter
+  try {
+    // Construct the full URL for the API endpoint.
+    // The use of try...catch will handle cases where the hostname doesn't exist, leading to a network error.
+    const fullUrl = `https://${url.hostname}/feeds/posts/default?alt=json`;
+    console.log(`Attempting to fetch from: ${fullUrl}`);
 
-  // 1. If returnInnerHtml is true, remove the outermost tag pair
-  if (options.returnInnerHtml) {
-    // Regex to match the opening tag (non-greedy) and then anything up to the closing tag
-    // This assumes `content` is the outerHTML of a single element.
-    const match = processedContent.match(/^<([a-zA-Z0-9]+)([^>]*)>([\s\S]*?)<\/\1>$/i);
-    if (match) {
-      // Group 3 contains the inner HTML
-      processedContent = match[3];
-    } else {
-      // Handle void elements or elements without explicit closing tags (e.g., <br>, <img>)
-      // If it's a void element, innerHTML is empty.
-      // If it's a self-closing XML-style tag (e.g., <div/>), innerHTML is empty.
-      // For simplicity, if no opening/closing tag pair is found, assume it's a void element or has no inner content.
-      processedContent = "";
-    }
-  }
+    const res = await fetchAndCache(fullUrl, ctx, 3600); // Use fetchAndCache here
 
-  // 2. If stripTags is true (and applies to innerHTML if that was selected)
-  if (options.stripTags && options.returnInnerHtml) {
-    // This regex removes all HTML tags from the content
-    processedContent = processedContent.replace(/<[^>]*>/g, '');
-  }
+    // Check if the HTTP response status is OK (i.e., in the 200-299 range).
+    // If it's not, we throw an error with the status message.
+    if (!res.ok) {
+      throw new Error(`HTTP error! Status: ${res.status} - ${res.statusText}`);
+    }
 
-  return processedContent;
+    // Attempt to parse the response body as JSON.
+    // This part is also wrapped in the try...catch block to handle malformed JSON.
+    const raw = await res.json();
+    
+    // Use optional chaining (`?.`) to safely access nested properties.
+    // This prevents a 'Cannot read properties of undefined' error if `raw.feed` or `raw.feed.entry` is missing.
+    // The `|| []` provides a default empty array if the entries are not found, ensuring a consistent return type.
+    return {
+      entries: raw?.feed?.entry || []
+    };
+  } catch (error) {
+    // This block catches any errors from the fetch call (network issues) or JSON parsing.
+    console.error("An error occurred while fetching the data:", error);
+    
+    // Return a default value to prevent the calling function from crashing.
+    // This ensures that the function always returns a valid object with an `entries` array.
+    return {
+      entries: []
+    };
+  }
 }
 
-/**
- * Returns the content of the first node matching `selector`.
- * @param {string} html The HTML string to parse.
- * @param {string} selector The CSS selector for the desired element.
- * @param {object} [options={}] - Configuration options.
- * @param {boolean} [options.returnInnerHtml=false] - If true, returns innerHTML instead of outerHTML.
- * @param {boolean} [options.stripTags=false] - If true, strips HTML tags from the content. Only applies if returnInnerHtml is true.
- * @returns {Promise<string|null>} The content string of the first match, or null if not found.
- */
-export async function querySelector(html, selector, options = {}) {
-  if (typeof html !== 'string' || !html.trim()) {
-    console.error("ERROR: No valid HTML string provided.");
-    return "ERROR: No valid HTML string provided.";
-  }
+async function getMetaDataWithTimeout(url, ctx, timeout = 2000) { // Add ctx as a parameter
+  const metaPromise = (async () => {
+    const feed = await getParsedJson(url, ctx); // Pass ctx here
+    const tagsSet = new Set();
+    const recentPosts = [];
 
-  const collector = await _runRewriter(html, selector, options);
-  
-  // Process the captured content if a result was found
-  if (collector.results.length) {
-    return _processContent(collector.results[0], options);
-  }
-  return null;
+    feed.entries.forEach(entry => {
+      entry.category?.forEach(c => tagsSet.add(c.term));
+      recentPosts.push({
+        title: entry.title?.$t,
+        href: entry.link?.find(l => l.rel === "alternate")?.href,
+        published: entry.published?.$t
+      });
+    });
+
+    const tags = Array.from(tagsSet).sort();
+    const recent = recentPosts
+    .filter(post => post.published) // ensures published exists
+    .sort((a, b) => new Date(b.published) - new Date(a.published)) // warning regarding date formatting can be ignored
+    .slice(0, 5);
+  
+    return { tags, recent };
+  })();
+
+  const timeoutPromise = new Promise(resolve =>
+    setTimeout(() => resolve({ tags: [], recent: [] }), timeout)
+  );
+
+  return Promise.race([metaPromise, timeoutPromise]);
 }
 
-/**
- * Returns an array of content strings for all nodes matching `selector`.
- * @param {string} html The HTML string to parse.
- * @param {string} selector The CSS selector for the desired elements.
- * @param {object} [options={}] - Configuration options.
- * @param {boolean} [options.returnInnerHtml=false] - If true, returns innerHTML instead of outerHTML.
- * @param {boolean} [options.stripTags=false] - If true, strips HTML tags from the content. Only applies if returnInnerHtml is true.
- * @returns {Promise<string[]>} An array of content strings for all matches.
- */
-export async function querySelectorAll(html, selector, options = {}) {
-  if (typeof html !== 'string' || !html.trim()) {
-    console.error("ERROR: No valid HTML string provided.");
-    return ["ERROR: No valid HTML string provided."];
-  }
+const insertBeforePost = (html, objectHTML) => {
+  const postDivRegex = /<div[^>]*class=["'][^"']*\bpost\b[^"']*["'][^>]*>/i;
+  const match = html.match(postDivRegex);
 
-  const collector = await _runRewriter(html, selector, options);
-  
-  // Process all captured results
-  return collector.results.map(content => _processContent(content, options));
+  if (match) {
+    const insertIndex = html.indexOf(match[0]);
+    const before = html.slice(0, insertIndex);
+    const after = html.slice(insertIndex);
+    return before + `<div class="object">\n${objectHTML}</div>\n` + after;
+  }
+
+  // Fallback if no post div found
+  return html;
+};
+
+function escapeHTML(htmlString) {
+  return htmlString
+    .replace(/&/g, '&amp;')  // Must go first!
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-/**
- * Returns the content of the element with the specified ID.
- * Alias for querySelector(html, `#${id}`, options).
- * @param {string} html The HTML string to parse.
- * @param {string} id The ID of the element.
- * @param {object} [options={}] - Configuration options (same as querySelector).
- * @returns {Promise<string|null>} The content string of the element, or null if not found.
- */
-export async function getElementById(html, id, options = {}) {
-  if (typeof id !== 'string' || !id.trim()) {
-    console.error("ERROR: No valid ID provided for getElementById.");
-    return null;
-  }
-  return querySelector(html, `#${id}`, options);
+
+function getMenuEntries(json, maxentries) {
+  const menuRegex = /\{\{menu(?::(\d+))?\}\}/i;
+  const entries = [];
+
+  for (const item of json.items || []) {
+    const match = item.title.match(menuRegex);
+    if (match) {
+      const number = match[1] ? parseInt(match[1], 10) : null;
+      const cleanedTitle = item.title.replace(menuRegex, '').trim();
+      const relativeUrl = item.url.replace(/^https?:\/\/[^/]+/, '');
+
+      entries.push({
+        title: cleanedTitle,
+        url: relativeUrl,
+        order: number !== null ? number : Infinity
+      });
+    }
+  }
+
+  // Sort and slice
+  entries.sort((a, b) => a.order - b.order);
+  const sliced = typeof maxentries === 'number'
+    ? entries.slice(0, maxentries)
+    : entries;
+
+  // If no valid entries, return fallback
+  if (sliced.length === 0) {
+    const fallback = [
+      { title: 'About', url: '/p/about.html' },
+      { title: 'News', url: '/p/news.html' },
+      { title: 'Contact', url: '/p/contact.html' }
+    ];
+    return typeof maxentries === 'number' ? fallback.slice(0, maxentries) : fallback;
+  }
+
+  return sliced.map(({ title, url }) => ({ title, url }));
 }
 
-/**
- * Returns an array of contents for all elements with the specified class name.
- * Alias for querySelectorAll(html, `.${className}`, options).
- * @param {string} html The HTML string to parse.
- * @param {string} className The class name of the elements.
- * @param {object} [options={}] - Configuration options (same as querySelectorAll).
- * @returns {Promise<string[]>} An array of content strings for the elements.
- */
-export async function getElementsByClassName(html, className, options = {}) {
-  if (typeof className !== 'string' || !className.trim()) {
-    console.error("ERROR: No valid class name provided for getElementsByClassName.");
-    return [];
-  }
-  return querySelectorAll(html, `.${className}`, options);
-}
-
-/**
- * Returns an array of contents for all elements with the specified tag name.
- * Alias for querySelectorAll(html, `${tagName}`, options).
- * @param {string} html The HTML string to parse.
- * @param {string} tagName The tag name of the elements (e.g., 'div', 'p', 'a').
- * @param {object} [options={}] - Configuration options (same as querySelectorAll).
- * @returns {Promise<string[]>} An array of content strings for the elements.
- */
-export async function getElementsByTagName(html, tagName, options = {}) {
-  if (typeof tagName !== 'string' || !tagName.trim()) {
-    console.error("ERROR: No valid tag name provided for getElementsByTagName.");
-    return [];
-  }
-  return querySelectorAll(html, tagName, options);
-}
-
-/**
- * Returns an array of contents for all elements with the specified 'name' attribute.
- * Alias for querySelectorAll(html, `[name="${name}"]`, options).
- * @param {string} html The HTML string to parse.
- * @param {string} name The value of the 'name' attribute.
- * @param {object} [options={}] - Configuration options (same as querySelectorAll).
- * @returns {Promise<string[]>} An array of content strings for the elements.
- */
-export async function getElementsByName(html, name, options = {}) {
-  if (typeof name !== 'string' || !name.trim()) {
-    console.error("ERROR: No valid name attribute value provided for getElementsByName.");
-    return [];
-  }
-  // Escape the name attribute value to prevent issues with complex values in selector
-  const escapedName = name.replace(/"/g, '\\"');
-  return querySelectorAll(html, `[name="${escapedName}"]`, options);
-}
-
-/**
- * Returns the value of a specific attribute for the first element matching the selector.
- * @param {string} html The HTML string to parse.
- * @param {string} selector The CSS selector for the desired element.
- * @param {string} attributeName The name of the attribute to retrieve (e.g., 'href', 'src', 'alt').
- * @returns {Promise<string|null>} The attribute value, or null if the element or attribute is not found.
- */
-export async function getAttribute(html, selector, attributeName) {
-  if (typeof html !== 'string' || !html.trim()) {
-    console.error("ERROR: No valid HTML string provided for getAttribute.");
-    return null;
-  }
-  if (typeof selector !== 'string' || !selector.trim()) {
-    console.error("ERROR: No valid selector provided for getAttribute.");
-    return null;
-  }
-  if (typeof attributeName !== 'string' || !attributeName.trim()) {
-    console.error("ERROR: No valid attribute name provided for getAttribute.");
-    return null;
-  }
-
-  // Use a special option in Collector to signal attribute extraction
-  const collector = await _runRewriter(html, selector, { attributeName: attributeName });
-  // querySelector logic returns the first item or null
-  return collector.results.length ? collector.results[0] : null;
+function renderMenuLinks(menuArray) {
+  return menuArray
+    .map(({ title, url }) => `<a href="${url}" class="top-menu-item">${title}</a>`)
+    .join('');
 }
