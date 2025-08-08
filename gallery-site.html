@@ -1515,6 +1515,8 @@ function getActiveCssText(el) {
 </script>
 
  <script>
+ document.addEventListener("DOMContentLoaded", function () {
+        
     // Get the main canvas and its context
     const canvas = document.getElementById('pixelCanvas');
     const ctx = canvas.getContext('2d');
@@ -1645,7 +1647,7 @@ function getActiveCssText(el) {
 
     // Add a resize listener to make the canvas responsive
     window.addEventListener('resize', setupCanvas);
-
+});
   </script>
 
 
@@ -1653,6 +1655,7 @@ function getActiveCssText(el) {
         
 </body>
 </html>
+
 
 
 
