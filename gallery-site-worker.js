@@ -636,31 +636,31 @@ html = html
         //html = cleanTitle(html);
       
 
-    // remove unused blogger.com stylesheets
-    function cleanBloggerArtifacts(html) {
-      return html
-        // Remove <noscript> blocks
-        .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, '')
-    
-        // Remove <link> to widget_css_bundle.css (any attribute order)
-        .replace(/<link\b[^>]*href=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widget_css_bundle\.css['"][^>]*>/gi, '')
-    
-        // Remove <link> to authorization.css with any attributes
-        .replace(/<link\b[^>]*href=['"]https:\/\/www\.blogger\.com\/dyn-css\/authorization\.css\?[^'"]+['"][^>]*>/gi, '')
-    
-        // Remove <script> to NNNNNNN-widgets.js
-        .replace(/<script\b[^>]*src=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widgets\.js['"][^>]*><\/script>/gi, '')
-    
-        // Remove inline <script> blocks containing _WidgetManager
-        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, match => {
-          return /_WidgetManager\./.test(match) ? '' : match;
-        })
-    
-        // Remove the <div id="searchSection">
-        .replace(/<div[^>]*id=["']searchSection["'][^>]*>[\s\S]*?<\/div>/gi, '')
-        .replace(/<div[^>]*class=["']blogger["'][^>]*>[\s\S]*?<\/div>/gi, '')
-        .replace(/<div[^>]*class=["']blog-feeds["'][^>]*>[\s\S]*?<\/div>/gi, '');
-    }
+        // remove unused blogger.com stylesheets
+        function cleanBloggerArtifacts(html) {
+          return html
+            // Remove <noscript> blocks
+            .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, '')
+
+            // Remove <link> to widget_css_bundle.css (any attribute order)
+            .replace(/<link\b[^>]*href=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widget_css_bundle\.css['"][^>]*>/gi, '')
+
+            // Remove <link> to authorization.css with any attributes, matching both 'www' and 'draft' subdomains
+            .replace(/<link\b[^>]*href=['"]https:\/\/(?:www|draft)\.blogger\.com\/dyn-css\/authorization\.css\?[^'"]+['"][^>]*>/gi, '')
+
+            // Remove <script> to NNNNNNN-widgets.js
+            .replace(/<script\b[^>]*src=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widgets\.js[''][^>]*><\/script>/gi, '')
+
+            // Remove inline <script> blocks containing _WidgetManager
+            .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, match => {
+              return /_WidgetManager\./.test(match) ? '' : match;
+            })
+
+            // Remove the <div id="searchSection">
+            .replace(/<div[^>]*id=["']searchSection["'][^>]*>[\s\S]*?<\/div>/gi, '')
+            .replace(/<div[^>]*class=["']blogger["'][^>]*>[\s\S]*?<\/div>/gi, '')
+            .replace(/<div[^>]*class=["']blog-feeds["'][^>]*>[\s\S]*?<\/div>/gi, '');
+        }
       
         
     html  = cleanBloggerArtifacts(html);
