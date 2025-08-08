@@ -17,7 +17,7 @@ Example use:
  strip all tags: const plainTextContent = await querySelector(html, 'div', { returnInnerHtml: true, stripTags: true });
 */
 
-const debug = false;
+const debug = true;
 
 if (!debug) {
   console.log = () => {};
