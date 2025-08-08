@@ -1,4 +1,6 @@
 import { test, querySelector, querySelectorAll, getAttribute } from './htmlparser.js'
+import { templateTagParser, injectLayoutClasses, cleanTitle, FinalCleanupHandler } from './templatehelper.js';
+
 
 let testHtml = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="A small, structured HTML file for testing purposes."><title>Test HTML Structure</title><link rel="stylesheet" href="styles.css"></head><body><header><h1 class="title">Welcome to My Test Page</h1><h2 id="sub-heading">Subheading: Testing HTML Structure</h2></header><main><div><h2 id="part1">Part 1</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div><div><h2 id="part2">Part 2</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div></main><footer><h2 id="footer-heading">Footer Section</h2><p class="footer-text">Thank you for visiting this test page.</p></footer></body></html>';
 
@@ -10,6 +12,31 @@ export default {
 
     const url = new URL(request.url);
     const path = url.pathname + (url.search || '');
+
+    const useHardCodedMenu = true;
+    const bloggerAPIkey = '';
+    const blogId = '';
+
+    let menuHtml = ''
+    /* if menu links are not hard-coded use {{menu:n}} tags in page titles to create navigation menu */
+    if (!useHardCodedMenu) {
+      // get menu items
+      const pageListUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages?fetchBodies=false&status=live&key=${bloggerAPIkey}`;
+      const pageListRes = await fetch(pageListUrl, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!pageListRes.ok) {
+        return new Response(`Feed fetch failed: ${pageListRes.status}`, { status: 502 });
+      }
+
+      const pagesJson = await pageListRes.json();    
+      const menuArray = getMenuEntries(pagesJson);
+      menuHtml = renderMenuLinks(menuArray);
+    }
+
 
     // Determine page type
     let pageClass = 'unknown-page';
@@ -162,11 +189,11 @@ if (labels.length > 0) {
 
 let imageHTML = '';
 if (imageLink && imageUrl) {
-  imageHTML += `<div class="object-image">\n`;
-  imageHTML += `  <a href="${imageLink}">\n`;
-  imageHTML += `    <img src="${imageUrl}" alt="${objectTitle}"/>\n`;
-  imageHTML += `  </a>\n`;
-  imageHTML += `</div>\n`;
+  imageHTML += `<div class="object-image"><div class="image-frame">\n`;
+  //imageHTML += `  <a href="${imageLink}">\n`;
+  imageHTML += `    <img src="${imageUrl}" alt="${objectTitle}" data-original-src="${imageLink}" class="view-original" />\n`;
+  // imageHTML += `  </a>\n`;
+  imageHTML += `</div></div>\n`;
 }
 
 let titleHTML = '';
@@ -317,7 +344,8 @@ html = html
       console.error(`CSS fetch failed: ${err}`);
     }
 
-    let LOGO_URL = 'https://raw.githubusercontent.com/netlands/sites-templates/main/' + sanitizedName + '-logo.svg';
+    const logotype = "png"; // svg
+    let LOGO_URL = 'https://raw.githubusercontent.com/netlands/sites-templates/main/' + sanitizedName + '-logo.' + logotype;
     const logoExists = await checkLogoExists(LOGO_URL);
    
     const rewriter = new HTMLRewriter()
@@ -339,7 +367,8 @@ html = html
       })
       .on('body', {
         element(el) {
-          el.setAttribute('class', `theme-${sanitizedName}`);
+          const currentValue = el.getAttribute("class") || "";
+          el.setAttribute("class", `${currentValue} theme-${sanitizedName}`); 
         }
       })
       .on('body', {
@@ -365,21 +394,140 @@ html = html
             el.setInnerContent(`<img src="${LOGO_URL}" alt="Logo">`, { html: true });
           }
         }
-      })
-      .on('div.post', {
-        element(el) {
-          el.setAttribute('style', 'display:none'); // el.remove();
-        }
       });
-    
-    
-    
+
+      // Conditionally chage contents
+      if (pageClass === 'post-page') {
+        rewriter.on('div.post', {
+          element(el) {
+            el.setAttribute('style', 'display:none'); // or el.remove();
+          }
+        });
+      } 
+
+      class MenuInjector {
+        constructor(menuHtml) {
+          this.menuHtml = menuHtml;
+        }
       
-    // Cleanup uneeded elements when styling is added
-    // Remove the <div id="searchSection">
-    html = html.replace(/<div[^>]*id=["']searchSection["'][^>]*>[\s\S]*?<\/div>/i, '');
-    html = html.replace(/<div[^>]*class=["']blogger["'][^>]*>[\s\S]*?<\/div>/i, '');
-    html = html.replace(/<div[^>]*class=["']blog-feeds["'][^>]*>[\s\S]*?<\/div>/i, '');
+        element(element) {
+          element.prepend(this.menuHtml, { html: true });
+        }
+      }
+      
+      if (!useHardCodedMenu) { rewriter.on('div.nav-section.collapsible-menu', new MenuInjector(menuHtml)); }
+            
+
+
+        // rewriter.on("a", new HideLinksByText(targets));
+         const targets = ["some text", "other text"];
+
+         class HideLinksByText {
+          constructor(targets) {
+            this.targets = targets.map(t => t.toLowerCase());
+          }
+        
+          // Called when the <a> tag starts
+          element(el) {
+            el.setAttribute("data-should-remove", "false"); // default flag
+            el.tagName = "a"; // ensure it's an <a> tag
+          }
+        
+          // Called for each text chunk inside the <a>
+          text(textChunk) {
+            const content = textChunk.text.trim().toLowerCase();
+            if (this.targets.some(target => content.includes(target))) {
+              textChunk.before(""); // optional: blank out the text
+              textChunk.remove();   // remove the chunk
+              this.shouldRemove = true;
+            }
+          }
+        
+          // Called when the tag ends
+          end(el) {
+            if (this.shouldRemove) {
+              el.remove(); // now safely remove the whole <a> tag
+            }
+          }
+        }
+        
+ 
+        class ReplaceWordInElement {
+          constructor(selector, fromWord, toWord) {
+            this.selector = selector;
+            this.fromWord = fromWord;
+            this.toWord = toWord;
+          }
+        
+          element(el) {
+            // Optional: mark the element if needed
+            el.setAttribute("data-word-replaced", "true");
+          }
+        
+          text(textChunk) {
+            const replaced = textChunk.text.replace(
+              new RegExp(`\\b${this.fromWord}\\b`, 'gi'),
+              this.toWord
+            );
+            textChunk.replace(replaced);
+          }
+        }
+
+        if (pageClass === 'label-search' || pageClass === 'full-search' ) {
+          // rewriter.on("a", new HideLinksByText(targets));
+          rewriter.on('div.status-msg-body', new ReplaceWordInElement('div.status-msg-body', 'posts', 'works'));
+          const tagsToRemove = ['a'];
+          class RemoveElement {
+            element(el) {
+              el.remove();
+            }
+          }
+          // Register each tag inside the target container
+          tagsToRemove.forEach(tag => {
+            rewriter.on(`div.status-msg-body ${tag}`, new RemoveElement());
+          });
+        }
+
+        // template related functions
+        // Use the single, unified parser for all content transformations
+        rewriter.on('*', new templateTagParser());      
+        html = injectLayoutClasses(html);     
+        //html = cleanTitle(html);
+      
+
+    // remove unused blogger.com stylesheets
+    function cleanBloggerArtifacts(html) {
+      return html
+        // Remove <noscript> blocks
+        .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, '')
+    
+        // Remove <link> to widget_css_bundle.css (any attribute order)
+        .replace(/<link\b[^>]*href=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widget_css_bundle\.css['"][^>]*>/gi, '')
+    
+        // Remove <link> to authorization.css with any attributes
+        .replace(/<link\b[^>]*href=['"]https:\/\/www\.blogger\.com\/dyn-css\/authorization\.css\?[^'"]+['"][^>]*>/gi, '')
+    
+        // Remove <script> to NNNNNNN-widgets.js
+        .replace(/<script\b[^>]*src=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widgets\.js['"][^>]*><\/script>/gi, '')
+    
+        // Remove inline <script> blocks containing _WidgetManager
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, match => {
+          return /_WidgetManager\./.test(match) ? '' : match;
+        })
+    
+        // Remove the <div id="searchSection">
+        .replace(/<div[^>]*id=["']searchSection["'][^>]*>[\s\S]*?<\/div>/gi, '')
+        .replace(/<div[^>]*class=["']blogger["'][^>]*>[\s\S]*?<\/div>/gi, '')
+        .replace(/<div[^>]*class=["']blog-feeds["'][^>]*>[\s\S]*?<\/div>/gi, '');
+    }
+      
+        
+    html  = cleanBloggerArtifacts(html);
+ 
+    html = html.replace(/&nbsp;/g, '\u00A0');
+
+    rewriter.on('title', new FinalCleanupHandler());
+    rewriter.on('h3', new FinalCleanupHandler());
 
     return rewriter.transform(new Response(html, {
       headers: { 'Content-Type': 'text/html' }
@@ -499,3 +647,52 @@ function escapeHTML(htmlString) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+
+function getMenuEntries(json, maxentries) {
+  const menuRegex = /\{\{menu(?::(\d+))?\}\}/i;
+  const entries = [];
+
+  for (const item of json.items || []) {
+    const match = item.title.match(menuRegex);
+    if (match) {
+      const number = match[1] ? parseInt(match[1], 10) : null;
+      const cleanedTitle = item.title.replace(menuRegex, '').trim();
+      const relativeUrl = item.url.replace(/^https?:\/\/[^/]+/, '');
+
+      entries.push({
+        title: cleanedTitle,
+        url: relativeUrl,
+        order: number !== null ? number : Infinity
+      });
+    }
+  }
+
+  // Sort and slice
+  entries.sort((a, b) => a.order - b.order);
+  const sliced = typeof maxentries === 'number'
+    ? entries.slice(0, maxentries)
+    : entries;
+
+  // If no valid entries, return fallback
+  if (sliced.length === 0) {
+    const fallback = [
+      { title: 'About', url: '/p/about.html' },
+      { title: 'News', url: '/p/news.html' },
+      { title: 'Contact', url: '/p/contact.html' }
+    ];
+    return typeof maxentries === 'number' ? fallback.slice(0, maxentries) : fallback;
+  }
+
+  return sliced.map(({ title, url }) => ({ title, url }));
+}
+
+function renderMenuLinks(menuArray) {
+  return menuArray
+    .map(({ title, url }) => `<a href="${url}" class="top-menu-item">${title}</a>`)
+    .join('');
+}
+
+
+
+
