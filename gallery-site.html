@@ -1499,10 +1499,10 @@ function getActiveCssText(el) {
   document.addEventListener("DOMContentLoaded", function () {
    if (document.documentElement.classList.contains('main-page')) {
 
-          const canvas = document.createElement('canvas');
-          canvas.id = 'pixelCanvas';
+          const canvasElement = document.createElement('canvas');
+          canvasElement.id = 'pixelCanvas';
         
-          Object.assign(canvas.style, {
+          Object.assign(canvasElement.style, {
             position: 'absolute',
             top: '0',
             left: '0',
@@ -1514,7 +1514,7 @@ function getActiveCssText(el) {
             transition: 'opacity 1s ease-out'
           });
         
-          document.body.insertBefore(canvas, document.body.firstChild);
+          document.body.insertBefore(canvasElement, document.body.firstChild);
 
 
     // Get the main canvas and its context
@@ -1656,6 +1656,7 @@ function getActiveCssText(el) {
         
 </body>
 </html>
+
 
 
 
