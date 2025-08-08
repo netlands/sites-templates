@@ -575,140 +575,7 @@ window.addEventListener('scroll', () => {
             
 </script>
 
-  <script>
-    // Get the main canvas and its context
-    const canvas = document.getElementById('pixelCanvas');
-    const ctx = canvas.getContext('2d');
-
-    // Create an offscreen canvas to handle the pixelation effect
-    const offscreenCanvas = document.createElement('canvas');
-    const offscreenCtx = offscreenCanvas.getContext('2d');
-
-    // We only need to load one image for the canvas since we are assuming
-    // it has the same proportions as the background image.
-    const sourceImage = new Image();
-    // sourceImage.crossOrigin = 'anonymous';
-    // get source image url from background image.
-    const el = document.querySelector('body');
-    const style = window.getComputedStyle(el);
-    const bgImage = style.backgroundImage;
-    // Extract just the URL from `url("...")`
-    const url = bgImage.slice(4, -1).replace(/["']/g, '');
-
-    function resizeBloggerImage(url) {
-        return url.replace(/\/s\d+-rw\//, '/w400-h198-rw/');
-    }
-
-    sourceImage.src = resizeBloggerImage(url);
-    let pixelSize = 64; // Start with large pixels
-    const duration = 2000; // Total animation time in ms
-    const steps = 32;
-    const interval = duration / steps;
-    let animationId = null;
-
-    /**
-     * Calculates the correct source (image) and destination (canvas)
-     * dimensions to replicate the CSS 'background-size: cover' behavior.
-     * It uses the low-res image's dimensions for the calculation.
-     */
-    function calculateCoverDimensions() {
-      const canvasAspectRatio = canvas.width / canvas.height;
-      const imageAspectRatio = sourceImage.naturalWidth / sourceImage.naturalHeight;
-      let sourceX, sourceY, sourceWidth, sourceHeight;
-
-      if (imageAspectRatio > canvasAspectRatio) {
-        // Image is wider than canvas, so we need to crop the sides
-        sourceWidth = sourceImage.naturalHeight * canvasAspectRatio;
-        sourceHeight = sourceImage.naturalHeight;
-        sourceX = (sourceImage.naturalWidth - sourceWidth) / 2;
-        sourceY = 0;
-      } else {
-        // Image is taller than canvas, so we need to crop the top and bottom
-        sourceWidth = sourceImage.naturalWidth;
-        sourceHeight = sourceImage.naturalWidth / canvasAspectRatio;
-        sourceX = 0;
-        sourceY = (sourceImage.naturalHeight - sourceHeight) / 2;
-      }
-      return { sourceX, sourceY, sourceWidth, sourceHeight };
-    }
-
-    /**
-     * The main animation loop.
-     * It draws the low-res image pixelated onto the canvas.
-     */
-    function animate() {
-      // Clear the main canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Get the correct cropped dimensions based on the source image
-      const { sourceX, sourceY, sourceWidth, sourceHeight } = calculateCoverDimensions();
-
-      // Check for valid dimensions before proceeding
-      if (sourceWidth > 0 && sourceHeight > 0 && sourceImage.complete) {
-        // Calculate the size of the pixelated grid
-        const scaledW = Math.floor(sourceWidth / pixelSize);
-        const scaledH = Math.floor(sourceHeight / pixelSize);
-        
-        // Ensure the offscreen canvas has valid dimensions before drawing
-        if (scaledW > 0 && scaledH > 0) {
-          // Resize the offscreen canvas to the pixelated grid size
-          offscreenCanvas.width = scaledW;
-          offscreenCanvas.height = scaledH;
-
-          // Ensure anti-aliasing is disabled for pixelation
-          offscreenCtx.imageSmoothingEnabled = false;
-
-          // Draw the cropped section of the source image to the small, offscreen canvas
-          offscreenCtx.drawImage(
-            sourceImage,
-            sourceX, sourceY, sourceWidth, sourceHeight,
-            0, 0, scaledW, scaledH
-          );
-
-          // Now, draw the small, pixelated offscreen canvas onto the main canvas,
-          // scaling it back up to fill the space. This ensures it perfectly matches
-          // the background image's 'cover' position.
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(offscreenCanvas, 0, 0, canvas.width, canvas.height);
-        }
-      }
-
-      // Gradually reduce the pixel size
-      if (pixelSize > 1) {
-        pixelSize = Math.max(1, pixelSize - 2);
-        animationId = setTimeout(animate, interval);
-      } else {
-        // Once the animation is complete, clear the timeout and hide the canvas abruptly
-        clearTimeout(animationId);
-        canvas.style.display = 'none';
-      }
-    }
-
-    /**
-     * This function handles resizing and starts the animation.
-     */
-    function setupCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      
-      // Reset opacity and pixel size
-      canvas.style.opacity = '1';
-      pixelSize = 64;
-
-      if (animationId) {
-        clearTimeout(animationId);
-      }
-      animate();
-    }
-
-    // Start the process once the low-res image has loaded
-    sourceImage.onload = setupCanvas;
-
-    // Add a resize listener to make the canvas responsive
-    window.addEventListener('resize', setupCanvas);
-
-  </script>
-
+ 
         
 <canvas id="pixelCanvas"></canvas>
 <header id="site-header">
@@ -1646,7 +1513,146 @@ function getActiveCssText(el) {
 })();
 
 </script>
+
+ <script>
+    // Get the main canvas and its context
+    const canvas = document.getElementById('pixelCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Create an offscreen canvas to handle the pixelation effect
+    const offscreenCanvas = document.createElement('canvas');
+    const offscreenCtx = offscreenCanvas.getContext('2d');
+
+    // We only need to load one image for the canvas since we are assuming
+    // it has the same proportions as the background image.
+    const sourceImage = new Image();
+    // sourceImage.crossOrigin = 'anonymous';
+    // get source image url from background image.
+    const el = document.querySelector('body');
+    const style = window.getComputedStyle(el);
+    const bgImage = style.backgroundImage;
+    // Extract just the URL from `url("...")`
+    const url = bgImage.slice(4, -1).replace(/["']/g, '');
+
+    function resizeBloggerImage(url) {
+        return url.replace(/\/s\d+-rw\//, '/w400-h198-rw/');
+    }
+
+    sourceImage.src = resizeBloggerImage(url);
+    let pixelSize = 64; // Start with large pixels
+    const duration = 2000; // Total animation time in ms
+    const steps = 32;
+    const interval = duration / steps;
+    let animationId = null;
+
+    /**
+     * Calculates the correct source (image) and destination (canvas)
+     * dimensions to replicate the CSS 'background-size: cover' behavior.
+     * It uses the low-res image's dimensions for the calculation.
+     */
+    function calculateCoverDimensions() {
+      const canvasAspectRatio = canvas.width / canvas.height;
+      const imageAspectRatio = sourceImage.naturalWidth / sourceImage.naturalHeight;
+      let sourceX, sourceY, sourceWidth, sourceHeight;
+
+      if (imageAspectRatio > canvasAspectRatio) {
+        // Image is wider than canvas, so we need to crop the sides
+        sourceWidth = sourceImage.naturalHeight * canvasAspectRatio;
+        sourceHeight = sourceImage.naturalHeight;
+        sourceX = (sourceImage.naturalWidth - sourceWidth) / 2;
+        sourceY = 0;
+      } else {
+        // Image is taller than canvas, so we need to crop the top and bottom
+        sourceWidth = sourceImage.naturalWidth;
+        sourceHeight = sourceImage.naturalWidth / canvasAspectRatio;
+        sourceX = 0;
+        sourceY = (sourceImage.naturalHeight - sourceHeight) / 2;
+      }
+      return { sourceX, sourceY, sourceWidth, sourceHeight };
+    }
+
+    /**
+     * The main animation loop.
+     * It draws the low-res image pixelated onto the canvas.
+     */
+    function animate() {
+      // Clear the main canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Get the correct cropped dimensions based on the source image
+      const { sourceX, sourceY, sourceWidth, sourceHeight } = calculateCoverDimensions();
+
+      // Check for valid dimensions before proceeding
+      if (sourceWidth > 0 && sourceHeight > 0 && sourceImage.complete) {
+        // Calculate the size of the pixelated grid
+        const scaledW = Math.floor(sourceWidth / pixelSize);
+        const scaledH = Math.floor(sourceHeight / pixelSize);
+        
+        // Ensure the offscreen canvas has valid dimensions before drawing
+        if (scaledW > 0 && scaledH > 0) {
+          // Resize the offscreen canvas to the pixelated grid size
+          offscreenCanvas.width = scaledW;
+          offscreenCanvas.height = scaledH;
+
+          // Ensure anti-aliasing is disabled for pixelation
+          offscreenCtx.imageSmoothingEnabled = false;
+
+          // Draw the cropped section of the source image to the small, offscreen canvas
+          offscreenCtx.drawImage(
+            sourceImage,
+            sourceX, sourceY, sourceWidth, sourceHeight,
+            0, 0, scaledW, scaledH
+          );
+
+          // Now, draw the small, pixelated offscreen canvas onto the main canvas,
+          // scaling it back up to fill the space. This ensures it perfectly matches
+          // the background image's 'cover' position.
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(offscreenCanvas, 0, 0, canvas.width, canvas.height);
+        }
+      }
+
+      // Gradually reduce the pixel size
+      if (pixelSize > 1) {
+        pixelSize = Math.max(1, pixelSize - 2);
+        animationId = setTimeout(animate, interval);
+      } else {
+        // Once the animation is complete, clear the timeout and hide the canvas abruptly
+        clearTimeout(animationId);
+        canvas.style.display = 'none';
+      }
+    }
+
+    /**
+     * This function handles resizing and starts the animation.
+     */
+    function setupCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      // Reset opacity and pixel size
+      canvas.style.opacity = '1';
+      pixelSize = 64;
+
+      if (animationId) {
+        clearTimeout(animationId);
+      }
+      animate();
+    }
+
+    // Start the process once the low-res image has loaded
+    sourceImage.onload = setupCanvas;
+
+    // Add a resize listener to make the canvas responsive
+    window.addEventListener('resize', setupCanvas);
+
+  </script>
+
+
+        
+        
 </body>
 </html>
+
 
 
