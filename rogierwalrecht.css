@@ -29,6 +29,10 @@ html.main-page header {
   );
 }
 
+htm.main-page footer {
+    background-color: #f8f8f86e;
+}    
+
 .placeholder.copyright-symbol {
   font-size: 0; /* hides the &copy; visually */
   display: inline-block;
@@ -49,5 +53,6 @@ html.main-page header {
   display: inline-block;
   color: inherit;
 }
+
 
 
