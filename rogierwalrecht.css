@@ -29,7 +29,7 @@ html.main-page header {
   );
 }
 
-htm.main-page footer {
+html.main-page footer {
     background-color: #f8f8f86e;
 }    
 
@@ -53,6 +53,7 @@ htm.main-page footer {
   display: inline-block;
   color: inherit;
 }
+
 
 
 
