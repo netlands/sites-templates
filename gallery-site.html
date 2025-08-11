@@ -1540,10 +1540,13 @@ function getActiveCssText(el) {
       const fallbackImage = "https://i.pinimg.com/1200x/fd/11/35/fd11358a8c21e6ac3ff30ba9e86a9c9f.jpg"
       const inputImage = document.querySelector('meta[property="og:image"]')?.content || fallbackImage;
 
-      function resizeImage(imageUrl, size) {
-         return imageUrl.replace(/\/(?:s\d+|w\d+-h\d+(?:-c)?)(?=\/)/, `/${size}`);
-      } 
-  
+        function resizeImage(imageUrl, size) {
+          return imageUrl.replace(
+            /\/(?:s\d+|w\d+-h\d+(?:-[a-z]+)*)(?=\/)/,
+            `/${size}`
+          );
+        }
+
     // Get both canvas elements and their contexts
     const pixelCanvas = document.getElementById('pixelCanvas');
     const pixelCtx = pixelCanvas.getContext('2d');
@@ -1708,6 +1711,7 @@ function getActiveCssText(el) {
         
 </body>
 </html>
+
 
 
 
