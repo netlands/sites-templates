@@ -164,6 +164,8 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
   
   let testHtml = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="A small, structured HTML file for testing purposes."><title>Test HTML Structure</title><link rel="stylesheet" href="styles.css"></head><body><header><h1 class="title">Welcome to My Test Page</h1><h2 id="sub-heading">Subheading: Testing HTML Structure</h2></header><main><div><h2 id="part1">Part 1</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div><div><h2 id="part2">Part 2</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div></main><footer><h2 id="footer-heading">Footer Section</h2><p class="footer-text">Thank you for visiting this test page.</p></footer></body></html>';
   
+  let lowResImage , highResImage;
+
   export default {
     async fetch(request, env, ctx) {
       
@@ -218,16 +220,31 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
         html = await response.text();  
   
         // main page specific styling
+        
         const imgRegex = /<img[^>]+src="([^"]+)"[^>]*>/i;
-  
         const firstImgMatch = html.match(imgRegex);
         const bgImageURL = firstImgMatch?.[1];
-        const injectedCSS = bgImageURL
+        /* const injectedCSS = bgImageURL
           ? `<style>body { --bg-image: url('${bgImageURL}'); background-image: var(--bg-image); background-size: cover; background-repeat: no-repeat; background-position: center center; background-attachment: fixed; }</style>`
           : '';
         html = html.replace('</head>', `${injectedCSS}</head>`);
-        html = html.replace(imgRegex, '');
-  
+        */ 
+
+        function resizeImage(imageUrl, size) {
+          return imageUrl.replace(
+            /\/(?:s\d+|w\d+-h\d+(?:-[a-z]+)*)(?=\/)/,
+            `/${size}`
+          );
+        }
+        
+        
+
+        lowResImage = resizeImage(bgImageURL,"s200");
+        highResImage = resizeImage(bgImageURL,"s0");
+
+
+       html = html.replace(imgRegex, '');
+         
         
       } else if (/^\/\d{4}\/\d{2}\/.*\.html$/.test(path)) {
         pageClass = 'post-page';
@@ -589,8 +606,32 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
               el.setAttribute('style', 'display:none'); // or el.remove();
             }
           });
-        } 
-  
+        }
+
+
+
+        class HeadPreloadInjector {
+          constructor(lowRes, highRes) {
+            this.lowRes = lowRes;
+            this.highRes = highRes;
+          }
+        
+          element(head) {
+            head.append(`
+              <link rel="preload" as="image" href="${this.lowRes}" fetchpriority="high" data-name="lowres-image">
+              <link rel="preload" as="image" href="${this.highRes}" fetchpriority="low" data-name="highres-image">
+            `, { html: true });
+          }
+        }
+
+
+
+        if (pageClass === 'main-page') {  
+          rewriter.on("head", new HeadPreloadInjector(lowResImage, highResImage))
+        }  
+
+
+
         class MenuInjector {
           constructor(menuHtml) {
             this.menuHtml = menuHtml;
@@ -723,6 +764,7 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
         // In debug mode, prevent the browser from caching the final HTML at all.
         responseHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       } else {
+        rewriter.on("*", new RemoveIfDebugClass());
         // In production, allow caching for a short period (e.g., 5 minutes) to improve performance
         // for repeat visitors while ensuring content stays relatively fresh.
         responseHeaders.set('Cache-Control', 'public, max-age=300');
@@ -734,6 +776,17 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
     }
   };
   
+  class RemoveIfDebugClass {
+    element(element) {
+      const classAttr = element.getAttribute("class");
+      if (classAttr && classAttr.split(/\s+/).includes("debug")) {
+        element.remove();
+      }
+    }
+  }
+  
+  
+
   /**
    * Asynchronously fetches a JSON feed, handles potential errors, and returns a sanitized list of entries.
    * This function is designed to be resilient to non-existent hostnames, network issues, or malformed JSON.
