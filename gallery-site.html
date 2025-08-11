@@ -1507,10 +1507,10 @@ function getActiveCssText(el) {
   document.addEventListener("DOMContentLoaded", function () {
    if (document.documentElement.classList.contains('main-page')) {
 
-          const bgCanvas = document.createElement('canvas');
-          bgCanvas.id = 'bgCanvas';
+          const bgCanvasElement = document.createElement('canvas');
+          bgCanvasElement.id = 'bgCanvas';
         
-          Object.assign(bgCanvas.style, {
+          Object.assign(bgCanvasElement.style, {
             position: 'fixed',
             top: '0',
             left: '0',
@@ -1519,10 +1519,10 @@ function getActiveCssText(el) {
             zIndex: '-1',
           });
 
-          const pixelCanvas = document.createElement('canvas');
-          pixelCanvas.id = 'pixelCanvas';
+          const pixelCanvasElement = document.createElement('canvas');
+          pixelCanvasElement.id = 'pixelCanvas';
         
-          Object.assign(pixelCanvas.style, {
+          Object.assign(pixelCanvasElement.style, {
             position: 'absolute',
             top: '0',
             left: '0',
@@ -1534,8 +1534,8 @@ function getActiveCssText(el) {
             transition: 'opacity 1s ease-out'
           });
 
-          document.body.insertBefore(pixelElement, document.body.firstChild);           
-          document.body.insertBefore(bgElement, document.body.firstChild);
+          document.body.insertBefore(pixelElementElement, document.body.firstChild);           
+          document.body.insertBefore(bgElementElement, document.body.firstChild);
 
 
       const inputImage = document.querySelector('meta[property="og:image"]')?.content || '';
@@ -1709,6 +1709,7 @@ function getActiveCssText(el) {
         
 </body>
 </html>
+
 
 
 
