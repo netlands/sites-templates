@@ -1546,7 +1546,15 @@ function getActiveCssText(el) {
             `/${size}`
           );
         }
-
+           
+        // Try to get preload links from the DOM
+        const preloadHigh = document.querySelector('link[rel="preload"][as="image"][data-name="highres-image"]');
+        const preloadLow = document.querySelector('link[rel="preload"][as="image"][data-name="lowres-image"]');
+        
+        // Use preload hrefs if available, otherwise fall back to resized inputImage
+        const highResUrl = preloadHigh?.href || resizeImage(inputImage, "s0");
+        const lowResUrl = preloadLow?.href || resizeImage(inputImage, "s200");
+  
     // Get both canvas elements and their contexts
     const pixelCanvas = document.getElementById('pixelCanvas');
     const pixelCtx = pixelCanvas.getContext('2d');
@@ -1557,9 +1565,7 @@ function getActiveCssText(el) {
     const highResImage = new Image();
     const pixelSourceImage = new Image();
 
-    // The high-res image URL (extracted from the original body style)
-    const highResUrl = resizeImage(inputImage,"s0");
-    const lowResUrl = resizeImage(inputImage,"s200");
+
 
     let pixelSize = 64; // Start with large pixels
     const duration = 2000; // Total animation time in ms
@@ -1711,6 +1717,7 @@ function getActiveCssText(el) {
         
 </body>
 </html>
+
 
 
 
