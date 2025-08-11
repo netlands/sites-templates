@@ -1534,11 +1534,11 @@ function getActiveCssText(el) {
             transition: 'opacity 1s ease-out'
           });
 
-          document.body.insertBefore(pixelElementElement, document.body.firstChild);           
-          document.body.insertBefore(bgElementElement, document.body.firstChild);
+          document.body.insertBefore(pixelCanvasElement, document.body.firstChild);           
+          document.body.insertBefore(bgCanvasElement, document.body.firstChild);
 
-
-      const inputImage = document.querySelector('meta[property="og:image"]')?.content || '';
+      const fallbackImage = "https://i.pinimg.com/1200x/fd/11/35/fd11358a8c21e6ac3ff30ba9e86a9c9f.jpg"
+      const inputImage = document.querySelector('meta[property="og:image"]')?.content || fallbackImage;
 
       function resizeImage(imageUrl, size) {
          return imageUrl.replace(/\/(?:s\d+|w\d+-h\d+(?:-c)?)(?=\/)/, `/${size}`);
@@ -1700,13 +1700,14 @@ function getActiveCssText(el) {
     pixelSourceImage.src = lowResUrl;
     
    });
-})       
+    
       
      
 </script>     
         
 </body>
 </html>
+
 
 
 
