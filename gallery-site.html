@@ -47,6 +47,10 @@ footer, header, main {
   font-style: normal;
 }
 
+footer, header, main {
+  z-index: 999;
+}
+        
   body {
     margin: 0;      
     display: flex;
@@ -155,7 +159,11 @@ span.blogger-icon svg {
       padding: 0 10px;
     }
 
+html.main-page footer {
+        background-color: #f8f8f87d !important;
+}        
 
+        
 .nav-section a, .menu-toggle-container .search-toggle  {
   font-size: 18px; 
   text-transform: uppercase;
@@ -450,7 +458,9 @@ a.active-link.title-link{
 .status-msg-hidden {
         display: none;
 }
-        
+
+
+       
 </style>
 <script>
 
@@ -1497,10 +1507,22 @@ function getActiveCssText(el) {
   document.addEventListener("DOMContentLoaded", function () {
    if (document.documentElement.classList.contains('main-page')) {
 
-          const canvasElement = document.createElement('canvas');
-          canvasElement.id = 'pixelCanvas';
+          const bgCanvas = document.createElement('canvas');
+          bgCanvas.id = 'bgCanvas';
         
-          Object.assign(canvasElement.style, {
+          Object.assign(bgCanvas.style, {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            zIndex: '-1',
+          });
+
+          const pixelCanvas = document.createElement('canvas');
+          pixelCanvas.id = 'pixelCanvas';
+        
+          Object.assign(pixelCanvas.style, {
             position: 'absolute',
             top: '0',
             left: '0',
@@ -1511,34 +1533,31 @@ function getActiveCssText(el) {
             opacity: '1',
             transition: 'opacity 1s ease-out'
           });
-        
-          document.body.insertBefore(canvasElement, document.body.firstChild);
+
+          document.body.insertBefore(pixelElement, document.body.firstChild);           
+          document.body.insertBefore(bgElement, document.body.firstChild);
 
 
-    // Get the main canvas and its context
-    const canvas = document.getElementById('pixelCanvas');
-    const ctx = canvas.getContext('2d');
+      const inputImage = document.querySelector('meta[property="og:image"]')?.content || '';
 
-    // Create an offscreen canvas to handle the pixelation effect
-    const offscreenCanvas = document.createElement('canvas');
-    const offscreenCtx = offscreenCanvas.getContext('2d');
+      function resizeImage(imageUrl, size) {
+         return imageUrl.replace(/\/(?:s\d+|w\d+-h\d+(?:-c)?)(?=\/)/, `/${size}`);
+      } 
+  
+    // Get both canvas elements and their contexts
+    const pixelCanvas = document.getElementById('pixelCanvas');
+    const pixelCtx = pixelCanvas.getContext('2d');
+    const bgCanvas = document.getElementById('bgCanvas');
+    const bgCtx = bgCanvas.getContext('2d');
 
-    // We only need to load one image for the canvas since we are assuming
-    // it has the same proportions as the background image.
-    const sourceImage = new Image();
-    // sourceImage.crossOrigin = 'anonymous';
-    // get source image url from background image.
-    const el = document.querySelector('body');
-    const style = window.getComputedStyle(el);
-    const bgImage = style.backgroundImage;
-    // Extract just the URL from `url("...")`
-    const url = bgImage.slice(4, -1).replace(/["']/g, '');
+    // Create image objects for both the high-res background and the low-res pixelation
+    const highResImage = new Image();
+    const pixelSourceImage = new Image();
 
-    function resizeBloggerImage(url) {
-        return url.replace(/\/s\d+-rw\//, '/w400-h198-rw/');
-    }
+    // The high-res image URL (extracted from the original body style)
+    const highResUrl = resizeImage(inputImage,"s0");
+    const lowResUrl = resizeImage(inputImage,"s200");
 
-    sourceImage.src = resizeBloggerImage(url);
     let pixelSize = 64; // Start with large pixels
     const duration = 2000; // Total animation time in ms
     const steps = 32;
@@ -1548,46 +1567,62 @@ function getActiveCssText(el) {
     /**
      * Calculates the correct source (image) and destination (canvas)
      * dimensions to replicate the CSS 'background-size: cover' behavior.
-     * It uses the low-res image's dimensions for the calculation.
      */
-    function calculateCoverDimensions() {
+    function calculateCoverDimensions(image, canvas) {
       const canvasAspectRatio = canvas.width / canvas.height;
-      const imageAspectRatio = sourceImage.naturalWidth / sourceImage.naturalHeight;
+      const imageAspectRatio = image.naturalWidth / image.naturalHeight;
       let sourceX, sourceY, sourceWidth, sourceHeight;
 
       if (imageAspectRatio > canvasAspectRatio) {
         // Image is wider than canvas, so we need to crop the sides
-        sourceWidth = sourceImage.naturalHeight * canvasAspectRatio;
-        sourceHeight = sourceImage.naturalHeight;
-        sourceX = (sourceImage.naturalWidth - sourceWidth) / 2;
+        sourceWidth = image.naturalHeight * canvasAspectRatio;
+        sourceHeight = image.naturalHeight;
+        sourceX = (image.naturalWidth - sourceWidth) / 2;
         sourceY = 0;
       } else {
         // Image is taller than canvas, so we need to crop the top and bottom
-        sourceWidth = sourceImage.naturalWidth;
-        sourceHeight = sourceImage.naturalWidth / canvasAspectRatio;
+        sourceWidth = image.naturalWidth;
+        sourceHeight = image.naturalWidth / canvasAspectRatio;
         sourceX = 0;
-        sourceY = (sourceImage.naturalHeight - sourceHeight) / 2;
+        sourceY = (image.naturalHeight - sourceHeight) / 2;
       }
       return { sourceX, sourceY, sourceWidth, sourceHeight };
+    }
+    
+    /**
+     * Draws the high-resolution image to the background canvas.
+     * This function is called on load and on resize.
+     */
+    function drawBgImage() {
+      bgCanvas.width = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+      
+      if (highResImage.complete) {
+        const { sourceX, sourceY, sourceWidth, sourceHeight } = calculateCoverDimensions(highResImage, bgCanvas);
+        bgCtx.drawImage(highResImage, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, bgCanvas.width, bgCanvas.height);
+      }
     }
 
     /**
      * The main animation loop.
-     * It draws the low-res image pixelated onto the canvas.
+     * It draws the low-res image pixelated onto the pixelation canvas.
      */
     function animate() {
-      // Clear the main canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Clear the pixelation canvas
+      pixelCtx.clearRect(0, 0, pixelCanvas.width, pixelCanvas.height);
 
-      // Get the correct cropped dimensions based on the source image
-      const { sourceX, sourceY, sourceWidth, sourceHeight } = calculateCoverDimensions();
+      const offscreenCanvas = document.createElement('canvas');
+      const offscreenCtx = offscreenCanvas.getContext('2d');
+
+      // Get the correct cropped dimensions based on the low-res source image
+      const { sourceX, sourceY, sourceWidth, sourceHeight } = calculateCoverDimensions(pixelSourceImage, pixelCanvas);
 
       // Check for valid dimensions before proceeding
-      if (sourceWidth > 0 && sourceHeight > 0 && sourceImage.complete) {
+      if (sourceWidth > 0 && sourceHeight > 0 && pixelSourceImage.complete) {
         // Calculate the size of the pixelated grid
         const scaledW = Math.floor(sourceWidth / pixelSize);
         const scaledH = Math.floor(sourceHeight / pixelSize);
-        
+
         // Ensure the offscreen canvas has valid dimensions before drawing
         if (scaledW > 0 && scaledH > 0) {
           // Resize the offscreen canvas to the pixelated grid size
@@ -1599,16 +1634,15 @@ function getActiveCssText(el) {
 
           // Draw the cropped section of the source image to the small, offscreen canvas
           offscreenCtx.drawImage(
-            sourceImage,
+            pixelSourceImage,
             sourceX, sourceY, sourceWidth, sourceHeight,
             0, 0, scaledW, scaledH
           );
 
           // Now, draw the small, pixelated offscreen canvas onto the main canvas,
-          // scaling it back up to fill the space. This ensures it perfectly matches
-          // the background image's 'cover' position.
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(offscreenCanvas, 0, 0, canvas.width, canvas.height);
+          // scaling it back up to fill the space.
+          pixelCtx.imageSmoothingEnabled = false;
+          pixelCtx.drawImage(offscreenCanvas, 0, 0, pixelCanvas.width, pixelCanvas.height);
         }
       }
 
@@ -1619,19 +1653,28 @@ function getActiveCssText(el) {
       } else {
         // Once the animation is complete, clear the timeout and hide the canvas abruptly
         clearTimeout(animationId);
-        canvas.style.display = 'none';
+        pixelCanvas.style.display = 'none';
+
+        // Set a flag in sessionStorage so the animation doesn't play again this session
+        sessionStorage.setItem('pixelationPlayed', 'true');
       }
     }
 
     /**
-     * This function handles resizing and starts the animation.
+     * This function handles resizing and starts the pixelation animation.
      */
-    function setupCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      
+    function setupPixelCanvas() {
+      // Check if the animation has already been played in this session
+      if (sessionStorage.getItem('pixelationPlayed')) {
+        pixelCanvas.style.display = 'none';
+        return;
+      }
+
+      pixelCanvas.width = window.innerWidth;
+      pixelCanvas.height = window.innerHeight;
+
       // Reset opacity and pixel size
-      canvas.style.opacity = '1';
+      pixelCanvas.style.opacity = '1';
       pixelSize = 64;
 
       if (animationId) {
@@ -1639,18 +1682,34 @@ function getActiveCssText(el) {
       }
       animate();
     }
+    
+    // Load the images and set up the canvases
+    // The high-res image will load and be drawn as soon as it's ready.
+    highResImage.onload = () => {
+      drawBgImage();
+      window.addEventListener('resize', drawBgImage);
+    };
+    highResImage.src = highResUrl;
 
-    // Start the process once the low-res image has loaded
-    sourceImage.onload = setupCanvas;
+    // The pixelation animation will start as soon as the low-res image is ready,
+    // independent of the high-res image loading.
+    pixelSourceImage.onload = () => {
+      setupPixelCanvas();
+      window.addEventListener('resize', setupPixelCanvas);
+    };
+    pixelSourceImage.src = lowResUrl;
+    
 
-    // Add a resize listener to make the canvas responsive
-    window.addEventListener('resize', setupCanvas);
-   }
+    
+    
   });
+      
+     
 </script>     
         
 </body>
 </html>
+
 
 
 
