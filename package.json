@@ -1,4 +1,8 @@
 {
+  "name": "kv-sync",
+  "version": "1.0.0",
+  "description": "Sync resource files to Cloudflare KV with custom key mapping",
+  "type": "module",
   "scripts": {
     "kv-sync": "node push-to-kv.js"
   },
