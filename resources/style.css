@@ -1,0 +1,447 @@
+  html, body {
+    height: 100%;
+  }
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+        
+/*.work-sans-regular {
+  font-family: "Work Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.castoro-regular {
+  font-family: "Castoro", Georgia, "Times New Roman", Times, serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.castoro-regular-italic {
+  font-family: "Castoro", Georgia, "Times New Roman", Times, serif;
+  font-weight: 400;
+  font-style: italic;
+}*/
+
+footer, header, main {
+  font-family: "Castoro", Georgia, "Times New Roman", Times, serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+footer, header {
+  z-index: 999;
+}
+        
+  body {
+    margin: 0;      
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+        
+   main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+   }
+
+    #site-header {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      transition: background-color 0.3s ease;
+    }
+
+    #site-footer {
+      width: 100%;
+      margin-top: auto;            
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0;
+      background-color: #f8f8f8;
+      font-size: 14px;
+      color: #444;
+      border-top: 1px solid #ddd;
+    }
+
+.footer-content {
+  max-width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  box-sizing: border-box;
+  width: 100%;
+}
+        
+    .footer-left,
+    .footer-right {
+      flex-shrink: 0;
+    }
+
+.footer-right div.container a {
+  display: flex;
+  align-items: center;
+  gap: 0.4em; /* spacing between icon and text */
+}        
+.footer-right a {
+  all: unset;
+  cursor: pointer; /* Restores link-like behavior */
+}
+
+.magic-icon svg {
+  width: 1em; 
+  height: 1em;
+  vertical-align: middle;
+  font-size: 18px; /* scales with text if you prefer using em */
+  display: block;
+  fill: currentColor; /* uses inherited text color */
+}
+
+.magic-text, .blogger-text {
+  font-size: 18px;
+  line-height: 1.0
+}
+
+span.magic-icon svg {
+  width: 18px !important; 
+}
+
+span.blogger-icon svg {
+  height: 20px !important; 
+  filter: grayscale(1);
+}        
+
+
+.footer-left {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 0.4em; /* optional: space between icon and text */
+}
+
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background-color: transparent;
+      transition: background-color 0.3s ease;
+    }
+
+    .nav-section,
+    .logo-section {
+      flex-shrink: 0;
+    }
+
+    .search-section {
+      flex-grow: 1;
+      padding: 0 10px;
+    }
+
+html.main-page footer {
+        background-color: #f8f8f87d !important;
+}        
+
+        
+.nav-section a, .menu-toggle-container .search-toggle  {
+  font-size: 18px; 
+  text-transform: uppercase;
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px;
+  height: 48px; /* Ensures consistent vertical alignment */
+  line-height: 1;
+}
+
+html.main-page .nav-section a {
+  color: white;
+}        
+        
+/* Optional: Give nav-section horizontal layout and vertical centering */
+.nav-section {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+html:not(.main-page) .logo-section img {
+  width: 200px;
+}
+
+        
+/* Icon styling (matches button height visually) */
+.material-symbols-outlined {
+  font-size: 26px;
+  vertical-align: middle;
+}
+
+/* menu formatting */
+.nav-section.collapsible-menu.open .top-menu-item, .nav-section.collapsible-menu.open #search-toggle-main {
+    color: black !important;
+}
+
+        
+      
+.search-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 400px;             /* Avoid overflow into nav or logo */
+  margin: 0 auto;               /* Optional: center within available space */
+}
+
+.search-form input[type="text"] {
+  flex-grow: 1;
+  flex-shrink: 1;
+  min-width: 0;                 /* Prevent weird flex overflow */
+  padding: 6px 10px;
+  font-size: 16px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.search-form input[type="submit"] {
+  flex-shrink: 0;
+  flex-grow: 0;
+  padding: 6px 12px;
+  font-size: 16px;
+  height: 36px;
+  white-space: nowrap;
+  width: auto;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* Hide search form by default, show toggle link */
+.search-section {
+  display: none;
+}
+
+.search-toggle-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* Use Material Symbols — make sure it's loaded */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* When body class is set to show the full search box */
+body.show-search-box .search-section {
+  display: flex;
+  justify-content: center;
+  flex-grow: 1;
+}
+
+body.show-search-box .search-toggle-link {
+  display: none;
+}
+
+html.main-page .search-section {
+  transform: scale(1.1); 
+}
+
+        
+    body.normal-order {
+      flex-direction: row;
+    }
+
+    body.reversed-order {
+      flex-direction: row-reverse;
+    }
+
+    /* When scrolled */
+    body.scrolled header {
+      background-color: white;
+    }
+    /* Styles when NOT scrolled */
+    body:not(.scrolled) header {
+      background-color: transparent;
+    }  
+
+
+/* Base styles */
+.collapsible-menu {
+  display: flex;
+  gap: 1rem;
+}
+
+.collapsible-menu.open {
+        top: 80px;
+}        
+
+        
+/* Hamburger and search toggle container */
+.menu-toggle-container {
+  display: none;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Responsive styles */
+@media (max-width: 866px) {
+  .collapsible-menu {
+    display: none;
+    flex-direction: column;
+    background: #fff;
+    position: absolute;
+    top: 60px; /* adjust based on header height */
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);      
+  }
+
+  .collapsible-menu.open {
+    display: flex;
+  }
+
+  .menu-toggle-container {
+    display: flex;
+  }
+
+  .nav-section {
+    order: 2;
+  }
+
+  .search-toggle-link {
+    order: 1;
+  }
+}
+
+@media (max-width: 500px) {
+ #search-toggle-small .search-toggle-text {
+         display: none;
+ }
+}
+        
+button.icon-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: inherit; /* optional: inherit icon size from parent */
+  color: inherit;     /* optional: inherit text/icon color */
+}      
+
+
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-wrapper input {
+  width: 100%;
+  padding: 10px 40px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Button styling */
+.search-button {
+  position: absolute;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+
+/* Icon inside button */
+.search-button .material-symbols-outlined {
+  font-size: 24px;
+}
+
+/* Positioning */
+.search-wrapper.icon-left .search-button {
+  left: 10px;
+}
+
+.search-wrapper.icon-right .search-button {
+  right: 10px;
+}
+
+/* Adjust input padding */
+.search-wrapper.icon-left input {
+  padding-left: 40px;
+  padding-right: 10px;
+}
+
+.search-wrapper.icon-right input {
+  padding-left: 10px;
+  padding-right: 40px;
+}
+
+/* hide default item */
+html.main-page h3.post-title, html.main-page div.blog-pager {
+    display: none;
+}
+
+
+
+
+/* work */
+
+.image-frame {
+  display: inline-block; /* shrink-wrap to content */
+  padding: 10;             /* 0 for no extra space */
+  margin: 0;
+  line-height: 0;         /* remove whitespace gaps */
+
+    box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),      /* gentle top/left glow */
+    2px 3px 8px rgba(0, 0, 0, 0.12);    /* richer bottom/right lift */
+}
+
+
+a.active-link {
+  pointer-events: none;     /* Makes the link unclickable */
+  color: gray;              /* Changes color to gray */
+  text-decoration: none;    /* Optional: remove underline */
+  cursor: default;          /* Optional: change cursor */
+}
+
+a.active-link.title-link{
+ font-size: 26px;
+}
+
+.status-msg-hidden {
+        display: none;
+}
+
+
+       
