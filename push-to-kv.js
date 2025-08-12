@@ -1,12 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 // fetch is now a native function in Node.js v18+, so we no longer need to require 'node-fetch'.
+require('dotenv').config();
 
 // --- Configuration ---
 // IMPORTANT: Replace with your actual Cloudflare credentials
-const API_TOKEN = 'eLoDoe4GSNgE4OdsrudjfU0qTpWflyfZbsxkNQjN';
-const ACCOUNT_ID = '3a0106ca802df3a6093bb7ad74b38573';
-const KV_NAMESPACE_ID = 'ffb467e3205b4611a7b591928e2eb3c7'; // Your KV namespace ID
+const API_TOKEN = process.env.API_TOKEN;;
+const ACCOUNT_ID = process.env.ACCOUNT_ID;
+const KV_NAMESPACE_ID = process.env.KV_NAMESPACE_ID; // Your KV namespace ID
 const BASE_DIR = path.join(__dirname, 'resources');
 const TYPES = ['js', 'css', 'html'];
 const isDryRun = process.argv.includes('--dry-run');
