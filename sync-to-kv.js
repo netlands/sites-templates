@@ -1,16 +1,20 @@
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const fetch = require('node-fetch');
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import fetch from 'node-fetch';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, 'resources');
+
 const CF_API_TOKEN = process.env.CF_API_TOKEN;
 const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
 const CF_NAMESPACE_ID = process.env.CF_NAMESPACE_ID;
 
-// Cache file to store previous hashes
 const CACHE_FILE = '.kv-sync-cache.json';
-let cache = fs.existsSync(CACHE_FILE) ? JSON.parse(fs.readFileSync(CACHE_FILE)) : {};
+let cache = fs.existsSync(CACHE_FILE)
+  ? JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'))
+  : {};
 
 function getKVKey(filePath) {
   const rel = path.relative(ROOT, filePath);
@@ -41,25 +45,25 @@ async function uploadToKV(key, value) {
   });
 
   if (!res.ok) {
-    console.error(`❌ Failed to upload ${key}: ${res.statusText}`);
+    console.error(`❌ Failed to upload ${key}: ${res.status} ${res.statusText}`);
   } else {
     console.log(`✅ Uploaded ${key}`);
   }
 }
 
-function walkAndSync(dir) {
+async function walkAndSync(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      walkAndSync(fullPath);
+      await walkAndSync(fullPath);
     } else {
       const content = fs.readFileSync(fullPath, 'utf8');
       const hash = hashContent(content);
       const key = getKVKey(fullPath);
 
       if (cache[key] !== hash) {
-        uploadToKV(key, content);
+        await uploadToKV(key, content);
         cache[key] = hash;
       } else {
         console.log(`⏩ Skipped unchanged ${key}`);
@@ -69,13 +73,10 @@ function walkAndSync(dir) {
 }
 
 try {
-  walkAndSync(ROOT);
-  // Save updated cache
+  await walkAndSync(ROOT);
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
   console.log('✅ KV sync completed successfully.');
 } catch (err) {
   console.error('❌ KV sync failed:', err.message);
   process.exit(1);
 }
-
-
