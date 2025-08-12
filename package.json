@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "kv-sync": "node push-to-kv.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
