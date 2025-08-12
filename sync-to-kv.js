@@ -68,7 +68,14 @@ function walkAndSync(dir) {
   }
 }
 
-walkAndSync(ROOT);
+try {
+  walkAndSync(ROOT);
+  // Save updated cache
+  fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+  console.log('✅ KV sync completed successfully.');
+} catch (err) {
+  console.error('❌ KV sync failed:', err.message);
+  process.exit(1);
+}
 
-// Save updated cache
-fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+
