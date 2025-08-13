@@ -103,7 +103,7 @@ async function syncRootFolder() {
         if (!TYPES.includes(ext)) continue;
 
         const name = path.basename(file, `.${ext}`);
-        const kvKey = `${ext}:/${name}`;
+        const kvKey = `${ext}:${name}`;
         await uploadToKV(kvKey, fullPath);
     }
 }

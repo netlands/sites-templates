@@ -25,7 +25,7 @@ function getKVKey(filePath) {
   if (parts.length === 2) {
     return `${parts[0]}:/${base}`;
   } else {
-    return `${ext}:/${base}`;
+    return `${ext}:${base}`;
   }
 }
 
