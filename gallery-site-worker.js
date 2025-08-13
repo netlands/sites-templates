@@ -158,13 +158,15 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
     return exists;
   }
   
-  
+  // start of page processing code
   import { test, querySelector, querySelectorAll, getAttribute } from './htmlparser.js'
   import { templateTagParser, injectLayoutClasses, cleanTitle, FinalCleanupHandler } from './templatehelper.js';
   
   let testHtml = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="A small, structured HTML file for testing purposes."><title>Test HTML Structure</title><link rel="stylesheet" href="styles.css"></head><body><header><h1 class="title">Welcome to My Test Page</h1><h2 id="sub-heading">Subheading: Testing HTML Structure</h2></header><main><div><h2 id="part1">Part 1</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div><div><h2 id="part2">Part 2</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div></main><footer><h2 id="footer-heading">Footer Section</h2><p class="footer-text">Thank you for visiting this test page.</p></footer></body></html>';
   
   let lowResImage , highResImage;
+  const useGitHub = false; // slower but easier to edit ;)
+
 
   export default {
     async fetch(request, env, ctx) {
@@ -186,10 +188,23 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
       const url = new URL(request.url);
       const path = url.pathname + (url.search || '');
   
+ 
+      // Helper function to extract blogId from HTML string
+      function extractBlogId(htmlString) {
+        const metaMatch = htmlString.match(/<meta[^>]+itemprop=["']blogId["'][^>]*content=["'](\d+)["']/i);
+        if (metaMatch) return metaMatch[1];
+
+        const linkMatch = htmlString.match(/<link[^>]+rel=["']service\.post["'][^>]*href=["'][^"']*\/feeds\/(\d+)\/posts\//i);
+        if (linkMatch) return linkMatch[1];
+
+        return null;
+      }
+
       const useHardCodedMenu = true;
-      const bloggerAPIkey = '';
-      const blogId = '';
-  
+      let bloggerAPIkey = env.BLOGGER_API_KEY;
+      const blogId = extractBlogId(html);
+
+
       let menuHtml = ''
       /* if menu links are not hard-coded use {{menu:n}} tags in page titles to create navigation menu */
       if (!useHardCodedMenu) {
@@ -207,11 +222,13 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
         menuHtml = renderMenuLinks(menuArray);
       }
   
-  
+
+// "route" related code
+
       // Determine page type
       let pageClass = 'unknown-page';
   
-      if (path === '/') {
+      if (path === '/' || path === '/p/home.html') {
         // get the index page
         pageClass = 'main-page';
         url.pathname = '/p/home.html';
@@ -230,6 +247,7 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
         html = html.replace('</head>', `${injectedCSS}</head>`);
         */ 
 
+        // main-page art related code
         function resizeImage(imageUrl, size) {
           return imageUrl.replace(
             /\/(?:s\d+|w\d+-h\d+(?:-[a-z]+)*)(?=\/)/,
@@ -237,13 +255,10 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
           );
         }
         
-        
-
         lowResImage = resizeImage(bgImageURL,"s200");
         highResImage = resizeImage(bgImageURL,"s0");
 
-
-       html = html.replace(imgRegex, '');
+        html = html.replace(imgRegex, '');
          
         
       } else if (/^\/\d{4}\/\d{2}\/.*\.html$/.test(path)) {
@@ -401,6 +416,7 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
         pageClass = 'label-search';
       } else if (/^\/search\?q=/.test(path)) {
         pageClass = 'full-search';
+        
       } else if (url.pathname === '/atom') {
         const format = url.searchParams.get('alt'); // Checks for ?alt=json
         const feedUrl = format === 'json'
@@ -453,7 +469,62 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
         }
       } else if (url.pathname === '/favicon.ico') {
         return new Response(null, { status: 204 });
+      } else if (url.pathname === '/getnews') {
+        const feedUrl = `https://www.blogger.com/feeds/${blogId}/posts/default/-/news?alt=json`;
+        console.log(feedUrl);       
+        try {
+          const res = await fetch(feedUrl);
+          if (!res.ok) throw new Error('Failed to fetch feed');
+  
+          const data = await res.json();
+          const entries = data.feed.entry || [];
+  
+          // Extract and sort by published date (descending)
+          const newsItems = entries
+            .map(entry => {
+              const title = entry.title?.['$t'] || 'Untitled';
+              const content = entry.content?.['$t'] || '';
+              const link = entry.link?.find(l => l.rel === 'alternate')?.href || '#';
+              const published = new Date(entry.published?.['$t'] || 0);
+              return { title, content, link, published };
+            })
+            .sort((a, b) => b.published - a.published);
+  
+          // Build HTML response
+          const html = `
+            <div class="news">
+              ${newsItems.map(item => `
+                <div class="news-item">
+                  <a href="${item.link}">
+                    <h2 class="news-title">${escapeHtml(item.title)}</h2>
+                  </a>
+                  <div class="news-content">${item.content}</div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+  
+          return new Response(html, {
+            headers: { 'Content-Type': 'text/html; charset=utf-8' }
+          });
+  
+        } catch (err) {
+          return new Response(`Error: ${err.message}`, { status: 500 });
+        }
       }
+
+    // Escape HTML to prevent injection in titles
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[c]));
+    }
+
+
   
   /* // insert JavaScript variable inside page   
   class ScriptInjector {
@@ -477,7 +548,16 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
   // rewriter.on('head', new ScriptInjector('myVar', 'Hello from Cloudflare'))
   */
   
-  
+
+  // Extract the original body content
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  const originalBodyContent = bodyMatch?.[1]?.trim() || '';
+  const wrappedMain = `<main>\n${originalBodyContent}\n</main>`;
+
+  let extraHeadContent, newBodyContent = "";
+
+  // add default content blocks
+if (useGitHub) { 
       const githubUrl = "https://raw.githubusercontent.com/netlands/sites-templates/main/gallery-site.html";
       // ✅ 3. Pass debug flag to cache function
       const htmlSnippet = await cacheContent(githubUrl, ctx, debug);
@@ -486,31 +566,50 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
       const headContent = htmlSnippet.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
       const bodyContent = htmlSnippet.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   
-      const extraHeadContent = headContent?.[1] || '';
+      extraHeadContent = headContent?.[1] || '';
       const extraBodyContent = bodyContent?.[1] || '';
   
-  // Extract the original body content
-  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  const originalBodyContent = bodyMatch?.[1]?.trim() || '';
-  const wrappedMain = `<main>\n${originalBodyContent}\n</main>`;
-  
-  // Inject <main> right after </header> in the template body content
-  let newBodyContent = extraBodyContent;
-  const headerCloseTag = '</header>';
-  const headerIndex = extraBodyContent.indexOf(headerCloseTag);
-  
-  if (headerIndex !== -1) {
-    const beforeHeader = extraBodyContent.slice(0, headerIndex + headerCloseTag.length);
-    const afterHeader = extraBodyContent.slice(headerIndex + headerCloseTag.length);
-    newBodyContent = `${beforeHeader}\n${wrappedMain}\n${afterHeader}`;
-  } else {
-    // Fallback: just prepend main if header not found
-    newBodyContent = `${wrappedMain}\n${extraBodyContent}`;
-  }
-  
-  // ✅ 3. Pass debug flag to get metadata
+      // Inject <main> right after </header> in the template body content
+      newBodyContent = extraBodyContent;
+      const headerCloseTag = '</header>';
+      const headerIndex = extraBodyContent.indexOf(headerCloseTag);
+      
+      if (headerIndex !== -1) {
+        const beforeHeader = extraBodyContent.slice(0, headerIndex + headerCloseTag.length);
+        const afterHeader = extraBodyContent.slice(headerIndex + headerCloseTag.length);
+        newBodyContent = `${beforeHeader}\n${wrappedMain}\n${afterHeader}`;
+      } else {
+        // Fallback: just prepend main if header not found
+        newBodyContent = `${wrappedMain}\n${extraBodyContent}`;
+      }
+} else { 
+
+  // get head content, and inline default style and scripts
+  // get header and footer
+  // build page structure: header main footer
+
+    // Fetch KV entries
+    const [head, style, script, header, footer] = await Promise.all([
+      env.GALLERY.get(`html:head`),
+      env.GALLERY.get(`css:style`),
+      env.GALLERY.get(`js:script`),
+      env.GALLERY.get(`html:header`),
+      env.GALLERY.get(`html:footer`)            
+    ]);
+    extraHeadContent = head || "";
+    let defaultStyle, defaultScript = ""
+    if (style) defaultStyle = `\n<style>${style}</style>` || "";
+    if (script) defaultScript = `\n<script>${script}</script>` || "";
+    const headerElement = header || "";
+    const footerElement = footer || "";
+
+    extraHeadContent = `${extraHeadContent}${defaultStyle}${defaultScript}`;
+    newBodyContent = `\n\n${headerElement}\n${wrappedMain}\n${footerElement}\n\n`;
+
+}  
+
+// ✅ 3. Pass debug flag to get metadata
   const { tags, recent } = await getMetaDataWithTimeout(url, ctx, debug);
-  
   
   // Rebuild the body
   html = html
@@ -522,9 +621,10 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
       // Handle the case where no match was found.
       console.error("Could not find the <body> tag to replace.");
     }
-  
-  
-      // add some personalizatipon based on the title
+
+   
+      // below depend on the header and footer being inserted correctly
+      // add some personalization based on the title
        let sitename = 'The Gallery'; // default fallback
   
       // Try to extract from data-sitename in the <html> tag
@@ -547,17 +647,25 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
       }
   
       const logotype = "png"; // svg
-      let LOGO_URL = 'https://raw.githubusercontent.com/netlands/sites-templates/main/' + sanitizedName + '-logo.' + logotype;
+      let LOGO_URL = 'https://s2.netlands.net/' + sanitizedName + '-logo.' + logotype;
+      // 'https://raw.githubusercontent.com/netlands/sites-templates/main/' + sanitizedName + '-logo.' + logotype;
       // ✅ 3. Pass debug flag to cache function
       const logoExists = await checkLogoExistsAndCache(LOGO_URL, ctx, debug);
      
       const rewriter = new HTMLRewriter()
+
+        // general page and site content
         .on('html', {
           element(el) {
             const existing = el.getAttribute('class');
             el.setAttribute('class', existing ? `${existing} ${pageClass}` : pageClass);
+            if (blogId) {
+                  el.setAttribute('data-blogid', blogId);
+            }
           }
         })
+
+        // theme/site specific content
         .on('span.sitename', {
           element(el) {
             el.setInnerContent(sitename, { html: false });
@@ -571,11 +679,10 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
         .on('body', {
           element(el) {
             const currentValue = el.getAttribute("class") || "";
-            el.setAttribute("class", `${currentValue} theme-${sanitizedName}`); 
-          }
-        })
-        .on('body', {
-          element(el) {
+            el.setAttribute(
+              "class",
+              currentValue ? `${currentValue} theme-${sanitizedName}` : `theme-${sanitizedName}`
+            );            
             if (inlineCSS.trim()) {
               el.append(`<style>\n${inlineCSS}\n</style>`, { html: true });
             }
@@ -599,7 +706,7 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
           }
         });
   
-        // Conditionally chage contents
+        // Page type specific contents
         if (pageClass === 'post-page') {
           rewriter.on('div.post', {
             element(el) {
@@ -607,8 +714,6 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
             }
           });
         }
-
-
 
         class HeadPreloadInjector {
           constructor(lowRes, highRes) {
@@ -624,14 +729,12 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
           }
         }
 
-
-
         if (pageClass === 'main-page') {  
           rewriter.on("head", new HeadPreloadInjector(lowResImage, highResImage))
         }  
 
 
-
+        // menu related 
         class MenuInjector {
           constructor(menuHtml) {
             this.menuHtml = menuHtml;
@@ -760,16 +863,65 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
         'Content-Type': 'text/html'
       });
   
+
+      class InjectBeforeBodyClose {
+        constructor(content) {
+          this.content = content;
+        }
+      
+        element(element) {
+          element.append(this.content, { html: true });
+        }
+      }
+      
+      
+      
+    
+
+
+
       if (debug) {
         // In debug mode, prevent the browser from caching the final HTML at all.
         responseHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        // add the CSS editor
+        const [editor] = await Promise.all([
+          env.GALLERY.get(`js:debug`)
+        ]);
+        if (editor) {
+          rewriter.on('body', new InjectBeforeBodyClose(`\n\n<script class="debug" id="css-editor">${editor}</script>`));
+        }  
       } else {
         rewriter.on("*", new RemoveIfDebugClass());
         // In production, allow caching for a short period (e.g., 5 minutes) to improve performance
         // for repeat visitors while ensuring content stays relatively fresh.
         responseHeaders.set('Cache-Control', 'public, max-age=300');
       }
+
+    const routeKey = pageClass === '/' ? '/main-page' : `/${pageClass.replace(/^\/+/, '')}`;
+
+    // Fetch KV entries
+    const [htm, css, js] = await Promise.all([
+      env.GALLERY.get(`html:${routeKey}`),
+      env.GALLERY.get(`css:${routeKey}`),
+      env.GALLERY.get(`js:${routeKey}`)
+    ]);
+
+      if (css) {
+        rewriter.on('body', new StyleInjector(css));
+      }
+      if (js) {
+        rewriter.on('body', new ScriptInjector(js));
+      }
+      if (htm) {
+        rewriter.on('body', new HtmlInjector(htm));
+      }
+
   
+
+
+
+
+
       return rewriter.transform(new Response(html, {
         headers: responseHeaders
       }));
@@ -922,3 +1074,33 @@ async function fetchAndCache(url, ctx, cacheDurationSeconds = 3600) {
       .map(({ title, url }) => `<a href="${url}" class="top-menu-item">${title}</a>`)
       .join('');
   }
+
+
+  class StyleInjector {
+    constructor(css) {
+      this.css = css;
+    }
+    element(el) {
+      el.append(`<style>${this.css}</style>`, { html: true });
+    }
+  }
+  
+  class ScriptInjector {
+    constructor(js) {
+      this.js = js;
+    }
+    element(el) {
+      el.append(`<script>${this.js}</script>`, { html: true });
+    }
+  }
+  
+  class HtmlInjector {
+    constructor(html) {
+      this.html = html;
+    }
+    element(el) {
+      el.append(this.html, { html: true });
+    }
+  }
+  
+  
