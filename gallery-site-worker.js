@@ -673,13 +673,16 @@ if (useGitHub) {
 // build page structure: header main footer
 
   // Fetch KV entries
-  const [head, style, script, header, footer] = await Promise.all([
-    env.GALLERY.get(`html:head`),
-    env.GALLERY.get(`css:style`),
-    env.GALLERY.get(`js:script`),
-    env.GALLERY.get(`html:header`),
-    env.GALLERY.get(`html:footer`)            
-  ]);
+  const kvKeys = [
+    `html:head`,
+    `css:style`,
+    `js:script`,
+    `html:header`,
+    `html:footer`
+  ];
+  const [head, style, script, header, footer] = await Promise.all(
+    kvKeys.map(key => env.GALLERY.get(key))
+  );
   extraHeadContent = head || "";
   let defaultStyle, defaultScript = ""
   if (style) defaultStyle = `\n<style>${style}</style>` || "";
