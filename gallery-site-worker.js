@@ -128,6 +128,19 @@ let testHtml = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta
 let lowResImage, highResImage;
 const useGitHub = config.useGitHub; // slower but easier to edit ;)
 
+const inMemoryCache = {};
+
+async function getCachedKV(env, key, cacheSeconds = 3600) {
+  const now = Date.now();
+  if (inMemoryCache[key] && (now - inMemoryCache[key].ts < cacheSeconds * 1000)) {
+    console.log(`[CACHE HIT] ${key}`);
+    return inMemoryCache[key].value;
+  }
+  console.log(`[CACHE MISS] ${key}`);
+  const value = await env.GALLERY.get(key);
+  inMemoryCache[key] = { value, ts: now };
+  return value;
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -173,18 +186,34 @@ if (url.pathname != '/favicon.ico') {
 
     /* if menu links are not hard-coded use {{menu:n}} tags in page titles to create navigation menu */
     if (!useHardCodedMenu && blogId) {
-      // get menu items
-      const pageListUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages?fetchBodies=false&status=live&key=${bloggerAPIkey}`;
-      // ✅ 3. Dynamic cache duration
-      const pageListRes = await cacheHelper(request, pageListUrl, debug ? 1 : 3600, ctx);
+      // Use a cache key for menuHtml
+      const menuCacheKey = `menuHtml:${blogId}`;
 
-      if (!pageListRes.ok) {
-        return new Response(`Feed fetch failed: ${pageListRes.status}`, { status: 502 });
+      if (debug) {
+        // In debug mode, always fetch fresh
+        const pageListUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages?fetchBodies=false&status=live&key=${bloggerAPIkey}`;
+        const pageListRes = await cacheHelper(request, pageListUrl, 1, ctx);
+        const pagesJson = await pageListRes.json();
+        const menuArray = getMenuEntries(pagesJson);
+        menuHtml = renderMenuLinks(menuArray);
+      } else {
+        // Try to get menuHtml from in-memory cache
+        if (inMemoryCache[menuCacheKey] && (Date.now() - inMemoryCache[menuCacheKey].ts < 3600 * 1000)) {
+          menuHtml = inMemoryCache[menuCacheKey].value;
+          console.log('Using cached menuHtml');
+        } else {
+          // Fetch menuHtml and store in cache
+          const pageListUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages?fetchBodies=false&status=live&key=${bloggerAPIkey}`;
+          const pageListRes = await cacheHelper(request, pageListUrl, 3600, ctx);
+          const pagesJson = await pageListRes.json();
+          const menuArray = getMenuEntries(pagesJson);
+          menuHtml = renderMenuLinks(menuArray);
+
+          // Store in in-memory cache
+          inMemoryCache[menuCacheKey] = { value: menuHtml, ts: Date.now() };
+          console.log('Fetched and cached menuHtml');
+        }
       }
-
-      const pagesJson = await pageListRes.json();
-      const menuArray = getMenuEntries(pagesJson);
-      menuHtml = renderMenuLinks(menuArray);
     }
   }
 
@@ -681,7 +710,8 @@ if (useGitHub) {
     `html:footer`
   ];
   const [head, style, script, header, footer] = await Promise.all(
-    kvKeys.map(key => env.GALLERY.get(key))
+    // kvKeys.map(key => env.GALLERY.get(key))
+    kvKeys.map(key => getCachedKV(env, key))
   );
   extraHeadContent = head || "";
   let defaultStyle, defaultScript = ""
