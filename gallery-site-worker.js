@@ -266,11 +266,11 @@ if (response) {
     // These will contain the logic previously inside the if/else if blocks
     async function handleMainPage(request, url, ctx, debug, html, env, blogId, pageClass) {
         // Logic for the main page
-        //if (path != '/') {
+        if (url.pathname === "/") {
           url.pathname = '/p/home.html';
           const response = await cacheHelper(request, url.toString(), debug ? 1 : 3600, ctx);
           html = await response.text();
-        //} 
+        } 
         // main page specific styling
         const imgRegex = /<img[^>]+src="([^"]+)"[^>]*>/i;
         const firstImgMatch = html.match(imgRegex);
