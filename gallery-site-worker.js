@@ -68,8 +68,7 @@ async function cacheHelper(request, cacheUrl, cacheDurationSeconds, ctx) {
       console.error(`Fetch error for ${cacheUrl}: ${error.message}`);
       
       // Fallback: If network failed, try to return a stale cached response if one exists.
-      // Use { ignoreVary: true } to increase the chance of a cache hit.
-      const staleResponse = await cache.match(cacheKey, { ignoreVary: true });
+      const staleResponse = await cache.match(cacheKey);
       if (staleResponse) {
         console.log(`Returning stale cache for ${cacheUrl} due to network error.`);
         return staleResponse;
@@ -126,14 +125,13 @@ import { test, querySelector, querySelectorAll, getAttribute } from './htmlparse
 import { templateTagParser, injectLayoutClasses, cleanTitle, FinalCleanupHandler } from './templatehelper.js';
 
 let testHtml = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="A small, structured HTML file for testing purposes."><title>Test HTML Structure</title><link rel="stylesheet" href="styles.css"></head><body><header><h1 class="title">Welcome to My Test Page</h1><h2 id="sub-heading">Subheading: Testing HTML Structure</h2></header><main><div><h2 id="part1">Part 1</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div><div><h2 id="part2">Part 2</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div></main><footer><h2 id="footer-heading">Footer Section</h2><p class="footer-text">Thank you for visiting this test page.</p></footer></body></html>';
-
-let lowResImage , highResImage;
+let lowResImage, highResImage;
 const useGitHub = config.useGitHub; // slower but easier to edit ;)
 
 
 export default {
   async fetch(request, env, ctx) {
-    
+
     // ✅ 1. Global debug flag
     // Set to 'true' to enable detailed logging and disable caching (by setting cache duration to 1 second).
     // Set to 'false' for production to suppress logs and use normal cache durations.
@@ -146,11 +144,17 @@ export default {
     }
 
     const originalResponse = await fetch(request);
-    let html = await originalResponse.text();
+    let html, originalHtml, blogId, menuHtml;
+    const useHardCodedMenu = config.useHardCodedMenu;
 
     const url = new URL(request.url);
     const path = url.pathname + (url.search || '');
 
+
+if (url.pathname != '/favicon.ico') {
+
+    originalHtml = await originalResponse.text();
+    html = originalHtml;
 
     // Helper function to extract blogId from HTML string
     function extractBlogId(htmlString) {
@@ -163,14 +167,12 @@ export default {
       return null;
     }
 
-    const useHardCodedMenu = config.useHardCodedMenu;
     let bloggerAPIkey = env.BLOGGER_API_KEY;
-    const blogId = extractBlogId(html);
+    blogId = extractBlogId(html);
 
 
-    let menuHtml = ''
     /* if menu links are not hard-coded use {{menu:n}} tags in page titles to create navigation menu */
-    if (!useHardCodedMenu) {
+    if (!useHardCodedMenu && blogId) {
       // get menu items
       const pageListUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages?fetchBodies=false&status=live&key=${bloggerAPIkey}`;
       // ✅ 3. Dynamic cache duration
@@ -180,336 +182,455 @@ export default {
         return new Response(`Feed fetch failed: ${pageListRes.status}`, { status: 502 });
       }
 
-      const pagesJson = await pageListRes.json();    
+      const pagesJson = await pageListRes.json();
       const menuArray = getMenuEntries(pagesJson);
       menuHtml = renderMenuLinks(menuArray);
     }
+  }
+
+let pageClass = 'unknown-page';
+let response = null;
+
+const routes = [
+  {
+    match: path === '/' || path === '/p/home.html',
+    pageClass: 'main-page',
+    handler: handleMainPage
+  },
+  {
+    match: /^\/\d{4}\/\d{2}\/.*\.html$/.test(path),
+    pageClass: 'post-page',
+    handler: handlePostPage
+  },
+  {
+    match: /^\/p\/.*\.html$/.test(path),
+    pageClass: 'static-page',
+    handler: handleStaticPage
+  },
+  {
+    match: /^\/search\/label\/[^/]+/.test(path),
+    pageClass: 'label-search',
+    handler: handleLabelSearch
+  },
+  {
+    match: /^\/search\?q=/.test(path),
+    pageClass: 'full-search',
+    handler: handleFullSearch
+  },
+  {
+    match: url.pathname === '/atom',
+    pageClass: 'feed',
+    handler: handleAtomFeed
+  },
+  {
+    match: url.pathname === '/json',
+    pageClass: 'feed',
+    handler: handleJsonFeed
+  },
+  {
+    match: url.pathname === '/favicon.ico',
+    pageClass: 'static-file',
+    handler: handleFavicon
+  },
+  {
+    match: url.pathname === '/getnews',
+    pageClass: 'news-feed',
+    handler: handleGetNews
+  }
+];
 
 
-// "route" related code
+for (const route of routes) {
+  if (route.match) {
+    pageClass = route.pageClass;
+    const result = await route.handler(request, url, ctx, debug, html, env, blogId, pageClass);
 
-    // Determine page type
-    let pageClass = 'unknown-page';
+    if (result instanceof Response) {
+      // Handler returned a final Response — terminate routing
+      response = result;
+      break;
+    } else if (typeof result === 'string') {
+      // Handler returned modified HTML — continue processing
+      html = result;
+      break;
+    }
+  }
+}
 
-    if (path === '/' || path === '/p/home.html') {
-      // get the index page
-      pageClass = 'main-page';
-      url.pathname = '/p/home.html';
-      // ✅ 3. Dynamic cache duration
-      const response = await cacheHelper(request, url.toString(), debug ? 1 : 3600, ctx);
-      html = await response.text();  
+if (response) { 
+  return response;
+}
+// END OF REVERTED ROUTER LOGIC
 
-      // main page specific styling
-      
-      const imgRegex = /<img[^>]+src="([^"]+)"[^>]*>/i;
-      const firstImgMatch = html.match(imgRegex);
-      const bgImageURL = firstImgMatch?.[1];
-      /* const injectedCSS = bgImageURL
-        ? `<style>body { --bg-image: url('${bgImageURL}'); background-image: var(--bg-image); background-size: cover; background-repeat: no-repeat; background-position: center center; background-attachment: fixed; }</style>`
-        : '';
-      html = html.replace('</head>', `${injectedCSS}</head>`);
-      */ 
+    // Placeholder functions for each route handler
+    // These will contain the logic previously inside the if/else if blocks
+    async function handleMainPage(request, url, ctx, debug, html, env, blogId, pageClass) {
+        // Logic for the main page
+        //if (path != '/') {
+          url.pathname = '/p/home.html';
+          const response = await cacheHelper(request, url.toString(), debug ? 1 : 3600, ctx);
+          html = await response.text();
+        //} 
+        // main page specific styling
+        const imgRegex = /<img[^>]+src="([^"]+)"[^>]*>/i;
+        const firstImgMatch = html.match(imgRegex);
+        const bgImageURL = firstImgMatch?.[1];
 
-      // main-page art related code
-      function resizeImage(imageUrl, size) {
-        return imageUrl.replace(
-          /\/(?:s\d+|w\d+-h\d+(?:-[a-z]+)*)(?=\/)/,
-          `/${size}`
-        );
-      }
-      
-      lowResImage = resizeImage(bgImageURL,"s200");
-      highResImage = resizeImage(bgImageURL,"s0");
+        // main-page art related code
+        function resizeImage(imageUrl, size) {
+            return imageUrl.replace(
+                /\/(?:s\d+|w\d+-h\d+(?:-[a-z]+)*)(?=\/)/,
+                `/${size}`
+            );
+        }
 
-      html = html.replace(imgRegex, '');
-       
-      
-    } else if (/^\/\d{4}\/\d{2}\/.*\.html$/.test(path)) {
-      pageClass = 'post-page';
-      /* here we parse the post contents */
+        lowResImage = resizeImage(bgImageURL, "s200");
+        highResImage = resizeImage(bgImageURL, "s0");
 
-const synonyms = {
-  title: ['title', 'name', 'titel', 'naam'],
-  artist: ['artist', 'creator', 'artiest'],
-  medium: ['medium'],
-  date: ['date', 'datum'],
-  year: ['year', 'jaar'],
-  period: ['period', 'periode'],
-  series: ['series', 'serie']
+        if (bgImageURL) {
+            // Build a regex to match <a> wrapping that specific image
+            const anchorImgRegex = new RegExp(
+                `<a[^>]*>\\s*(${firstImgMatch[0].replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')})\\s*</a>`,
+                'i'
+            );
+            // Replace the <a>...</a> with just the <img>
+            html = html.replace(anchorImgRegex, '');
+        }
+        // html = html.replace(imgRegex, '');
+        return html;
+    }
+
+    async function handlePostPage(request, url, ctx, debug, html, env, blogId, pageClass) {
+        // Logic for the post page
+        const synonyms = {
+          title: ['title', 'name', 'titel', 'naam'],
+          artist: ['artist', 'creator', 'artiest'],
+          medium: ['medium'],
+          date: ['date', 'datum'],
+          year: ['year', 'jaar'],
+          period: ['period', 'periode'],
+          series: ['series', 'serie']
+        };
+
+        const renderOrder = Object.keys(synonyms);
+        const prettify = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+        // 1️⃣ Extract post-body <div> content
+        const bodyHTML = await querySelector(html, 'div.post-body', {
+          returnInnerHtml: true
+        });
+
+
+        // 2️⃣ Extract title
+        const objectTitle = await querySelector(html, "div.post h3.post-title", {
+          returnInnerHtml: true,
+          stripTags: true
+        });
+
+
+        // 3️⃣ Parse individual field lines
+        let parsed = {};
+        let parsedRawKeys = {};
+        let leftoverLines = [];
+
+        // Step 1: Normalize HTML into clean lines
+        let cleanHTML = bodyHTML
+          .replace(/\r\n|\r/g, '\n') // Normalize CRLF to LF
+          .replace(/<div[^>]*>/gi, '¶') // Replace opening <div> with pilcrow
+          .replace(/<\/div>/gi, '¶') // Replace closing </div> with pilcrow
+          .replace(/<br\s*\/?>/gi, '¶') // Replace <br> with pilcrow
+          .replace(/&nbsp;(?=\s*[:=])/gi, ' ') // Replace nbsp before : or = with space
+          .replace(/(?<=[:=]\s*)&nbsp;/gi, '') // Remove nbsp after :
+          .replace(/^(&nbsp;)+|(&nbsp;)+$/gi, '') // Trim leading/trailing nbsp
+          .replace(/<[^>]+>/g, '') // Strip all other tags
+          .replace(/[ \t]+/g, ' ') // Normalize spacing
+          .replace(/¶+/g, '¶') // Collapse multiple pilcrows
+          .replace(/^\s*¶|¶\s*$/g, ''); // Trim leading/trailing pilcrows
+        // .replace(/\s*¶\s*/g, '\n');                    // Convert pilcrow to actual line break
+
+
+        const lines = cleanHTML
+          .split('¶') // .split('\n')
+          .map(line => line.trim())
+          .filter(Boolean); // Remove empty lines
+
+        // Step 2: Parse structured lines using synonyms
+        for (const line of lines) {
+          let matched = false;
+
+          for (const [canonicalKey, variants] of Object.entries(synonyms)) {
+            for (const variant of variants) {
+              const fieldRegex = new RegExp(`^${variant}\\s*[:=]\\s*(.*)$`, 'i');
+              const fieldMatch = line.match(fieldRegex);
+
+              if (fieldMatch && fieldMatch[1] !== undefined) {
+                parsed[canonicalKey] = fieldMatch[1].trim();
+                parsedRawKeys[canonicalKey] = variant;
+                matched = true;
+                break;
+              }
+            }
+            if (matched) break;
+          }
+
+          if (!matched) {
+            leftoverLines.push(line);
+          }
+        }
+
+        // Step 3: Inject fallback title if missing
+        if (!parsed.title && objectTitle) {
+          parsed.title = objectTitle.trim();
+        }
+
+
+
+        // 4️⃣ Extract labels
+        let labels = await querySelectorAll(html, "span.post-labels a", {
+          returnInnerHtml: true,
+          stripTags: true
+        });
+
+        // 5️⃣ Extract image & link
+        const imageLink = await getAttribute(html, "div.post-body div.separator a", "href");
+        const imageUrl = await getAttribute(html, "div.post-body div.separator a img", "src");
+
+        // 6️⃣ Render HTML
+        let cardHTML = '<div class="card">\n';
+
+        renderOrder.forEach(key => {
+          if (parsed[key]) {
+            const prettyKey = prettify(key);
+            cardHTML += `  <div class="field object-${key}">\n    <span class="key">${prettyKey}</span>: <span class="value">${parsed[key]}</span>\n  </div>\n`;
+          }
+        });
+
+        Object.entries(parsed).forEach(([key, value]) => {
+          if (!renderOrder.includes(key)) {
+            const prettyKey = prettify(key);
+            cardHTML += `  <div class="field object-${key}">\n    <span class="key">${prettyKey}</span>: <span class="value">${value}</span>\n  </div>\n`;
+          }
+        });
+
+        cardHTML += '</div>\n';
+
+        let notesHTML = '<div class="notes">\n';
+        for (const line of leftoverLines) {
+          notesHTML += `  <p>${line}</p>\n`;
+        }
+        notesHTML += '</div>\n';
+
+        let labelHTML = '';
+        if (labels.length > 0) {
+          labelHTML += `<div class="object-labels">\n`;
+          for (const label of labels) {
+            const safeLabel = encodeURIComponent(label);
+            labelHTML += `  <span class="object-label"><a href="/search/label/${safeLabel}">${label}</a></span>\n`;
+          }
+          labelHTML += `</div>\n`;
+        }
+
+        let imageHTML = '';
+        if (imageLink && imageUrl) {
+          imageHTML += `<div class="object-image"><div class="image-frame">\n`;
+          //imageHTML += `  <a href="${imageLink}">\n`;
+          imageHTML += `    <img src="${imageUrl}" alt="${objectTitle}" data-original-src="${imageLink}" class="view-original" />\n`;
+          // imageHTML += `  </a>\n`;
+          imageHTML += `</div></div>\n`;
+        }
+
+        let titleHTML = '';
+        if (objectTitle) {
+          titleHTML = `<h3 class="object-title">${objectTitle}</h3>\n`;
+        }
+
+        let objectHTML = titleHTML + imageHTML + cardHTML + notesHTML + labelHTML;
+
+        // uncomment to debug original formatting issues
+        // objectHTML = objectHTML + "<br/>==========================================<br/><br/>" + cleanHTML + "<br/>--------------------------------------------------------------------------------<br/><br/>" + bodyHTML + "<br/>==========================================<br/><br/>";
+
+const insertBeforePost = (html, objectHTML) => {
+  const postDivRegex = /<div[^>]*class=["'][^"']*\bpost\b[^"']*["'][^>]*>/i;
+  const match = html.match(postDivRegex);
+
+  if (match) {
+    const insertIndex = html.indexOf(match[0]);
+    const before = html.slice(0, insertIndex);
+    const after = html.slice(insertIndex);
+    return before + `<div class="object">\n${objectHTML}</div>\n` + after;
+  }
+
+  // Fallback if no post div found
+  return html;
 };
 
-const renderOrder = Object.keys(synonyms);
-const prettify = s => s.charAt(0).toUpperCase() + s.slice(1);
-
-// 1️⃣ Extract post-body <div> content
-const bodyHTML = await querySelector(html, 'div.post-body', { returnInnerHtml: true });
-
-
-// 2️⃣ Extract title
-const objectTitle = await querySelector(html, "div.post h3.post-title",{returnInnerHtml: true, stripTags: true});
-
-
-// 3️⃣ Parse individual field lines
-let parsed = {};
-let parsedRawKeys = {};
-let leftoverLines = [];
-
-// Step 1: Normalize HTML into clean lines
-let cleanHTML = bodyHTML
-  .replace(/\r\n|\r/g, '\n')                     // Normalize CRLF to LF
-  .replace(/<div[^>]*>/gi, '¶')                  // Replace opening <div> with pilcrow
-  .replace(/<\/div>/gi, '¶')                     // Replace closing </div> with pilcrow
-  .replace(/<br\s*\/?>/gi, '¶')                  // Replace <br> with pilcrow
-  .replace(/&nbsp;(?=\s*[:=])/gi, ' ')           // Replace nbsp before : or = with space
-  .replace(/(?<=[:=]\s*)&nbsp;/gi, '')           // Remove nbsp after :
-  .replace(/^(&nbsp;)+|(&nbsp;)+$/gi, '')        // Trim leading/trailing nbsp
-  .replace(/<[^>]+>/g, '')                       // Strip all other tags
-  .replace(/[ \t]+/g, ' ')                       // Normalize spacing
-  .replace(/¶+/g, '¶')                           // Collapse multiple pilcrows
-  .replace(/^\s*¶|¶\s*$/g, '');                  // Trim leading/trailing pilcrows
-  // .replace(/\s*¶\s*/g, '\n');                    // Convert pilcrow to actual line break
-
-
-const lines = cleanHTML
-  .split('¶') // .split('\n')
-  .map(line => line.trim())
-  .filter(Boolean); // Remove empty lines
-
-// Step 2: Parse structured lines using synonyms
-for (const line of lines) {
-  let matched = false;
-
-  for (const [canonicalKey, variants] of Object.entries(synonyms)) {
-    for (const variant of variants) {
-      const fieldRegex = new RegExp(`^${variant}\\s*[:=]\\s*(.*)$`, 'i');
-      const fieldMatch = line.match(fieldRegex);
-
-      if (fieldMatch && fieldMatch[1] !== undefined) {
-        parsed[canonicalKey] = fieldMatch[1].trim();
-        parsedRawKeys[canonicalKey] = variant;
-        matched = true;
-        break;
-      }
+        html = insertBeforePost(html, objectHTML);
+        return html;
     }
-    if (matched) break;
-  }
 
-  if (!matched) {
-    leftoverLines.push(line);
-  }
-}
+    async function handleStaticPage(request, url, ctx, debug, html, env, blogId, pageClass) {
+        // Logic for the static page
+        // The original code has no specific logic for this page type, so we can leave it empty or add a comment.
+        // It's here for completeness and to show how a handler would be structured.
+        return null; // Return null so the main fetch function can continue processing
+    }
 
-// Step 3: Inject fallback title if missing
-if (!parsed.title && objectTitle) {
-  parsed.title = objectTitle.trim();
-}
+    async function handleLabelSearch(request, url, ctx, debug, html, env, blogId, pageClass) {
+        // Logic for the label search page
+        return null; // Return null so the main fetch function can continue processing
+    }
 
+    async function handleFullSearch(request, url, ctx, debug, html, env, blogId, pageClass) {
+        // Logic for the full search page
+        return null; // Return null so the main fetch function can continue processing
+    }
 
+    async function handleAtomFeed(request, url, ctx, debug, html, env, blogId, pageClass) {
+        // Logic for the Atom feed
+        const format = url.searchParams.get('alt'); // Checks for ?alt=json
+        const feedUrl = format === 'json' ?
+          'https://' + url.hostname + '/feeds/posts/default?alt=json' :
+          'https://' + url.hostname + '/feeds/posts/default';
 
-// 4️⃣ Extract labels
-let labels = await querySelectorAll(html, "span.post-labels a", {
-  returnInnerHtml: true,
-  stripTags: true
-});
+        try {
+          // ✅ 3. Dynamic cache duration
+          const feedRes = await cacheHelper(request, feedUrl, debug ? 1 : 3600, ctx);
 
-// 5️⃣ Extract image & link
-const imageLink = await getAttribute(html,"div.post-body div.separator a", "href");
-const imageUrl = await getAttribute(html,"div.post-body div.separator a img", "src");
-
-// 6️⃣ Render HTML
-let cardHTML = '<div class="card">\n';
-
-renderOrder.forEach(key => {
-  if (parsed[key]) {
-    const prettyKey = prettify(key);
-    cardHTML += `  <div class="field object-${key}">\n    <span class="key">${prettyKey}</span>: <span class="value">${parsed[key]}</span>\n  </div>\n`;
-  }
-});
-
-Object.entries(parsed).forEach(([key, value]) => {
-  if (!renderOrder.includes(key)) {
-    const prettyKey = prettify(key);
-    cardHTML += `  <div class="field object-${key}">\n    <span class="key">${prettyKey}</span>: <span class="value">${value}</span>\n  </div>\n`;
-  }
-});
-
-cardHTML += '</div>\n';
-
-let notesHTML = '<div class="notes">\n';
-for (const line of leftoverLines) {
-  notesHTML += `  <p>${line}</p>\n`;
-}
-notesHTML += '</div>\n';
-
-let labelHTML = '';
-if (labels.length > 0) {
-  labelHTML += `<div class="object-labels">\n`;
-  for (const label of labels) {
-    const safeLabel = encodeURIComponent(label);
-    labelHTML += `  <span class="object-label"><a href="/search/label/${safeLabel}">${label}</a></span>\n`;
-  }
-  labelHTML += `</div>\n`;
-}
-
-let imageHTML = '';
-if (imageLink && imageUrl) {
-  imageHTML += `<div class="object-image"><div class="image-frame">\n`;
-  //imageHTML += `  <a href="${imageLink}">\n`;
-  imageHTML += `    <img src="${imageUrl}" alt="${objectTitle}" data-original-src="${imageLink}" class="view-original" />\n`;
-  // imageHTML += `  </a>\n`;
-  imageHTML += `</div></div>\n`;
-}
-
-let titleHTML = '';
-if (objectTitle) {
-  titleHTML = `<h3 class="object-title">${objectTitle}</h3>\n`;
-}
-
-let objectHTML = titleHTML + imageHTML + cardHTML + notesHTML + labelHTML;
-
-// uncomment to debug original formatting issues
-// objectHTML = objectHTML + "<br/>==========================================<br/><br/>" + cleanHTML + "<br/>--------------------------------------------------------------------------------<br/><br/>" + bodyHTML + "<br/>==========================================<br/><br/>";
-html = insertBeforePost(html, objectHTML);
-
-
-
-    } else if (/^\/p\/.*\.html$/.test(path)) {
-      pageClass = 'static-page';
-    } else if (/^\/search\/label\/[^/]+/.test(path)) {
-      pageClass = 'label-search';
-    } else if (/^\/search\?q=/.test(path)) {
-      pageClass = 'full-search';
-      
-    } else if (url.pathname === '/atom') {
-      const format = url.searchParams.get('alt'); // Checks for ?alt=json
-      const feedUrl = format === 'json'
-        ? 'https://' + url.hostname + '/feeds/posts/default?alt=json'
-        : 'https://' + url.hostname + '/feeds/posts/default';
-    
-      try {
-        // ✅ 3. Dynamic cache duration
-        const feedRes = await cacheHelper(request, feedUrl, debug ? 1 : 3600, ctx);
-    
-        if (!feedRes.ok) {
-          return new Response(`Feed fetch failed: ${feedRes.status}`, { status: 502 });
-        }
-    
-        const body = await feedRes.text();
-        const contentType = feedRes.headers.get('Content-Type') || (format === 'json' ? 'application/json' : 'application/atom+xml');
-    
-        return new Response(body, {
-          status: 200,
-          headers: {
-            'Content-Type': contentType,
-            'Cache-Control': 'no-store'
+          if (!feedRes.ok) {
+            return new Response(`Feed fetch failed: ${feedRes.status}`, {
+              status: 502
+            });
           }
-        });
-    
-      } catch (err) {
-        return new Response(`Feed error: ${err.message}`, { status: 500 });
-      }
-    } else if (url.pathname === '/json') {
-      const feedUrl = 'https://' + url.hostname + '/feeds/posts/default?alt=json';
-    
-      try {
-        // ✅ 3. Dynamic cache duration
-        const feedRes = await cacheHelper(request, feedUrl, debug ? 1 : 3600, ctx);
-    
-        if (!feedRes.ok) {
-          return new Response(`Feed fetch failed: ${feedRes.status}`, { status: 502 });
+
+          const body = await feedRes.text();
+          const contentType = feedRes.headers.get('Content-Type') || (format === 'json' ? 'application/json' : 'application/atom+xml');
+
+          return new Response(body, {
+            status: 200,
+            headers: {
+              'Content-Type': contentType,
+              'Cache-Control': 'no-store'
+            }
+          });
+
+        } catch (err) {
+          return new Response(`Feed error: ${err.message}`, {
+            status: 500
+          });
         }
-    
-        const json = await feedRes.text(); // Use text() to stream untouched JSON
-        return new Response(json, {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store'
+    }
+
+    async function handleJsonFeed(request, url, ctx, debug, html, env, blogId, pageClass) {
+        // Logic for the JSON feed
+        const feedUrl = 'https://' + url.hostname + '/feeds/posts/default?alt=json';
+
+        try {
+          // ✅ 3. Dynamic cache duration
+          const feedRes = await cacheHelper(request, feedUrl, debug ? 1 : 3600, ctx);
+
+          if (!feedRes.ok) {
+            return new Response(`Feed fetch failed: ${feedRes.status}`, {
+              status: 502
+            });
           }
-        });
-      } catch (err) {
-        return new Response(`Feed error: ${err.message}`, { status: 500 });
+
+          const json = await feedRes.text(); // Use text() to stream untouched JSON
+          return new Response(json, {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-store'
+            }
+          });
+        } catch (err) {
+          return new Response(`Feed error: ${err.message}`, {
+            status: 500
+          });
+        }
+    }
+
+    async function handleFavicon(request, url, ctx, debug, html, env, blogId, pageClass) {
+        // Logic for the favicon
+        return new Response(null, { status: 204 });
+    }
+
+    async function handleGetNews(request, url, ctx, debug, html, env, blogId, pageClass) {
+        // Logic for the news feed
+        const feedUrl = `https://www.blogger.com/feeds/${blogId}/posts/default/-/news?alt=json`;
+        console.log(feedUrl);
+        try {
+            const res = await fetch(feedUrl);
+            if (!res.ok) throw new Error('Failed to fetch feed');
+            const data = await res.json();
+            const entries = data.feed.entry || []; // Extract and sort by published date (descending)
+            const newsItems = entries
+                .map(entry => {
+                    const title = entry.title?.['$t'] || 'Untitled';
+                    const content = entry.content?.['$t'] || '';
+                    const link = entry.link?.find(l => l.rel === 'alternate')?.href || '#';
+                    const published = new Date(entry.published?.['$t'] || 0);
+                    return {
+                        title,
+                        content,
+                        link,
+                        published
+                    };
+                })
+                .sort((a, b) => b.published - a.published);
+            // Build HTML response
+            const html = `
+                <div class="news">
+                  ${newsItems.map(item => `
+                    <div class="news-item">
+                      <a href="${item.link}">
+                        <h2 class="news-title">${escapeHtml(item.title)}</h2>
+                      </a>
+                      <div class="news-content">${item.content}</div>
+                    </div>
+                  `).join('')}
+                </div>
+            `;
+            return new Response(html, {
+                headers: {
+                    'Content-Type': 'text/html; charset=utf-8'
+                }
+            });
+        } catch (err) {
+            return new Response(`Error: ${err.message}`, {
+                status: 500
+            });
+        }
+    }
+
+    // Escape HTML to prevent injection in titles
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    
+
+
+
+    /*
+    // insert JavaScript variable inside page
+    class ScriptInjector {
+      constructor(variableName, value) {
+        this.variableName = variableName;
+        this.value = value;
       }
-    } else if (url.pathname === '/favicon.ico') {
-      return new Response(null, { status: 204 });
-    } else if (url.pathname === '/getnews') {
-      const feedUrl = `https://www.blogger.com/feeds/${blogId}/posts/default/-/news?alt=json`;
-      console.log(feedUrl);       
-      try {
-        const res = await fetch(feedUrl);
-        if (!res.ok) throw new Error('Failed to fetch feed');
-
-        const data = await res.json();
-        const entries = data.feed.entry || [];
-
-        // Extract and sort by published date (descending)
-        const newsItems = entries
-          .map(entry => {
-            const title = entry.title?.['$t'] || 'Untitled';
-            const content = entry.content?.['$t'] || '';
-            const link = entry.link?.find(l => l.rel === 'alternate')?.href || '#';
-            const published = new Date(entry.published?.['$t'] || 0);
-            return { title, content, link, published };
-          })
-          .sort((a, b) => b.published - a.published);
-
-        // Build HTML response
-        const html = `
-          <div class="news">
-            ${newsItems.map(item => `
-              <div class="news-item">
-                <a href="${item.link}">
-                  <h2 class="news-title">${escapeHtml(item.title)}</h2>
-                </a>
-                <div class="news-content">${item.content}</div>
-              </div>
-            `).join('')}
-          </div>
-        `;
-
-        return new Response(html, {
-          headers: { 'Content-Type': 'text/html; charset=utf-8' }
-        });
-
-      } catch (err) {
-        return new Response(`Error: ${err.message}`, { status: 500 });
+      element(element) {
+        const scriptContent = `window.${this.variableName} = ${JSON.stringify(this.value)};`;
+        element.append(`<script>${scriptContent}</script>`, { html: true });
       }
     }
 
-  // Escape HTML to prevent injection in titles
-  function escapeHtml(str) {
-    return str.replace(/[&<>"']/g, c => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    }[c]));
-  }
-
-
-/* // insert JavaScript variable inside page   
-class ScriptInjector {
-  constructor(variableName, value) {
-    this.variableName = variableName;
-    this.value = value;
-  }
-
-  element(element) {
-    const scriptContent = `window.${this.variableName} = ${JSON.stringify(this.value)};`;
-    element.append(`<script>${scriptContent}</script>`, { html: true });
-  }
-}
-
-async function handleRequest(request) {
-  const response = await fetch(request);
-  return new HTMLRewriter()
-    .on('head', new ScriptInjector('myVar', 'Hello from Cloudflare'))
-    .transform(response);
-}
-// rewriter.on('head', new ScriptInjector('myVar', 'Hello from Cloudflare'))
-*/
-
+    async function handleRequest(request) {
+      const response = await fetch(request);
+      return new HTMLRewriter()
+        .on('head', new ScriptInjector('myVar', 'Hello from Cloudflare'))
+        .transform(response);
+    }
+    // rewriter.on('head', new ScriptInjector('myVar', 'Hello from Cloudflare'))
+    */
 
 // Extract the original body content
 const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
@@ -586,22 +707,20 @@ html = html
   }
 
  
-    // below depend on the header and footer being inserted correctly
-    // add some personalization based on the title
-     let sitename = 'The Gallery'; // default fallback
-
+    //* below depend on the header and footer being inserted correctly *//
+    // add site personalization based on the title
+     let sitename = 'Gallery'; // default fallback
     // Try to extract from data-sitename in the <html> tag
     const htmlTagMatch = html.match(/<html[^>]*?\sdata-sitename=["']([^"']+)["']/i);
-
     if (htmlTagMatch) {
       sitename = htmlTagMatch[1];
     }
     
     // add site specific style sheet
     const sanitizedName = sitename.replace(/\s+/g, '').toLowerCase();
+
     const styleUrl = `https://raw.githubusercontent.com/netlands/sites-templates/main/${sanitizedName}.css`;
     let inlineCSS = '';
-
     try {
       // ✅ 3. Pass debug flag to cache function
       const cssResponse = await cacheHelper(request, styleUrl, debug ? 1 : 86400, ctx);
@@ -616,6 +735,7 @@ html = html
     // ✅ 3. Pass debug flag to cache function
     const logoExists = await checkContentExistsAndCache(new URL(LOGO_URL), ctx);
    
+    
     const rewriter = new HTMLRewriter()
 
       // general page and site content
@@ -638,6 +758,9 @@ html = html
       .on('div.logo-section', {
         element(el) {
           el.setInnerContent(`<span class="sitename">${sitename}</span>`, { html: true });
+          if (logoExists) {
+            el.setInnerContent(`<img src="${LOGO_URL}" alt="Logo">`, { html: true });
+          }
         }
       })
       .on('body', {
@@ -659,13 +782,6 @@ html = html
               tags.map(tag => `  <li>${tag}</li>`).join('\n') +
               `\n</ul>`;
             el.prepend(tagMarkup, { html: true });
-          }
-        }
-      })
-      .on('div.logo-section', {
-        element(el) {
-          if (logoExists) {
-            el.setInnerContent(`<img src="${LOGO_URL}" alt="Logo">`, { html: true });
           }
         }
       });
