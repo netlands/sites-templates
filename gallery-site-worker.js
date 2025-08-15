@@ -9,7 +9,7 @@
  * replacing them with a more efficient and integrated `checkContentExistsAndCache` function.
  */
 
-const config = {
+export const config = {
   debug: true, // Set to 'true' to enable detailed logging and disable caching (by setting cache duration to 1 second).
   useGitHub: false, // Use GitHub for templates (slower but easier to edit)
   useHardCodedMenu: false, // Use hardcoded menu links instead of scraping page titles.
