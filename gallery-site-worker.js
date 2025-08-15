@@ -750,6 +750,10 @@ html = html
       class MenuInjector {
         constructor(menuHtml) {
           this.menuHtml = menuHtml;
+          if (!menuHtml) {
+            const menuArray =  [ { title: 'About', url: '/p/about.html' }, { title: 'News', url: '/p/news.html' }, { title: 'Contact', url: '/p/contact.html' } ];
+            this.menuHtml = renderMenuLinks(menuArray);
+          }
         }
       
         element(element) {
@@ -757,7 +761,8 @@ html = html
         }
       }
       
-      if (!useHardCodedMenu) { rewriter.on('div.nav-section.collapsible-menu', new MenuInjector(menuHtml)); }
+      // insert menu
+      rewriter.on('div.nav-section.collapsible-menu', new MenuInjector(menuHtml)); 
             
 
 
