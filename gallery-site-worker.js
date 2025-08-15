@@ -950,12 +950,15 @@ html = html
             .replace(/<link\b[^>]*href=['"]https:\/\/(?:www|draft)\.blogger\.com\/dyn-css\/authorization\.css\?[^'"]+['"][^>]*>/gi, '')
 
             // Remove <script> to NNNNNNN-widgets.js
-            .replace(/<script\b[^>]*src=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widgets\.js[''][^>]*><\/script>/gi, '')
+            .replace(/<script\b[^>]*src=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widgets\.js['"][^>]*>\s*<\/script>/gi, '')
 
             // Remove inline <script> blocks containing _WidgetManager
             .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, match => {
               return /_WidgetManager\./.test(match) ? '' : match;
             })
+
+            // Remove <div class="clear"></div>
+            .replace(/<div[^>]*class=["']clear["'][^>]*>\s*<\/div>/gi, '')
 
             // Remove the <div id="searchSection">
             .replace(/<div[^>]*id=["']searchSection["'][^>]*>[\s\S]*?<\/div>/gi, '')
