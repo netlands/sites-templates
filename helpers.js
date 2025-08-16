@@ -1,4 +1,4 @@
-import { config } from './worker.js';
+import { config, inMemoryCache } from './worker.js';
 // --- New, optimized caching functions ---
 
 /**
@@ -96,4 +96,16 @@ export async function cacheHelper(request, cacheUrl, cacheDurationSeconds, ctx) 
     // Await the text() to get the boolean value
     const existsText = await response.text();
     return existsText === 'true';
+  }
+
+  export async function getCachedKV(env, key, cacheSeconds = 3600) {
+    const now = Date.now();
+    if (inMemoryCache[key] && (now - inMemoryCache[key].ts < cacheSeconds * 1000)) {
+      console.log(`[CACHE HIT] ${key}`);
+      return inMemoryCache[key].value;
+    }
+    console.log(`[CACHE MISS] ${key}`);
+    const value = await env.GALLERY.get(key);
+    inMemoryCache[key] = { value, ts: now };
+    return value;
   }

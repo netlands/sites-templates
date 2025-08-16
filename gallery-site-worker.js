@@ -18,28 +18,28 @@ export const config = {
   // Add other configurable values here as needed
 };
 
+function isDebugMode(url) {
+  if (config.debug === true) return true; // Manual override always wins
+
+  const p = url.searchParams;
+  const truthy = new Set(['', '1', 'true', 'yes']);
+  const flags = ['debug', 'refresh', 'nocache'];
+
+  return flags.some(key => {
+    const value = p.get(key);
+    return value !== null && truthy.has(value.toLowerCase());
+  });
+}
+
 // start of page processing code
 import { test, querySelector, querySelectorAll, getAttribute } from './htmlparser.js'
 import { templateTagParser, injectLayoutClasses, cleanTitle, FinalCleanupHandler } from './templatehelper.js';
-import { cacheHelper, checkContentExistsAndCache } from './helpers.js';
+import { cacheHelper, checkContentExistsAndCache, getCachedKV } from './helpers.js';
 
 let testHtml = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="A small, structured HTML file for testing purposes."><title>Test HTML Structure</title><link rel="stylesheet" href="styles.css"></head><body><header><h1 class="title">Welcome to My Test Page</h1><h2 id="sub-heading">Subheading: Testing HTML Structure</h2></header><main><div><h2 id="part1">Part 1</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div><div><h2 id="part2">Part 2</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div></main><footer><h2 id="footer-heading">Footer Section</h2><p class="footer-text">Thank you for visiting this test page.</p></footer></body></html>';
 let lowResImage, highResImage;
-const useGitHub = config.useGitHub; // slower but easier to edit ;)
 
-const inMemoryCache = {};
-
-async function getCachedKV(env, key, cacheSeconds = 3600) {
-  const now = Date.now();
-  if (inMemoryCache[key] && (now - inMemoryCache[key].ts < cacheSeconds * 1000)) {
-    console.log(`[CACHE HIT] ${key}`);
-    return inMemoryCache[key].value;
-  }
-  console.log(`[CACHE MISS] ${key}`);
-  const value = await env.GALLERY.get(key);
-  inMemoryCache[key] = { value, ts: now };
-  return value;
-}
+export const inMemoryCache = {};
 
 export default {
   async fetch(request, env, ctx) {
@@ -57,11 +57,13 @@ export default {
 
     const originalResponse = await fetch(request);
     let html, originalHtml, blogId, menuHtml;
-    const useHardCodedMenu = config.useHardCodedMenu;
 
     const url = new URL(request.url);
-    const path = url.pathname + (url.search || '');
-
+    const path = url.pathname;
+    const search = url.search; // includes leading '?', or '' if none
+    const params = url.searchParams; // for easy access to individual keys
+    
+    config.debug = isDebugMode(url);
 
 if (url.pathname != '/favicon.ico') {
 
@@ -84,7 +86,7 @@ if (url.pathname != '/favicon.ico') {
 
 
     /* if menu links are not hard-coded use {{menu:n}} tags in page titles to create navigation menu */
-    if (!useHardCodedMenu && blogId) {
+    if (!config.useHardCodedMenu && blogId) {
       // Use a cache key for menuHtml
       const menuCacheKey = `menuHtml:${blogId}`;
 
@@ -141,7 +143,7 @@ const routes = [
     handler: handleLabelSearch
   },
   {
-    match: /^\/search\?q=/.test(path),
+    match: /^\/search\?q=/.test(path + search),
     pageClass: 'full-search',
     handler: handleFullSearch
   },
@@ -568,7 +570,7 @@ const wrappedMain = `<main>\n${originalBodyContent}\n</main>`;
 let extraHeadContent, newBodyContent = "";
 
 // add default content blocks
-if (useGitHub) { 
+if (config.useGitHub) { 
     const githubUrl = "https://raw.githubusercontent.com/netlands/sites-templates/main/gallery-site.html";
     // ✅ 3. Pass debug flag to cache function
     const response = await cacheHelper(request, githubUrl, debug ? 1 : 7200, ctx);
@@ -677,6 +679,9 @@ html = html
           el.setAttribute('class', existing ? `${existing} ${pageClass}` : pageClass);
           if (blogId) {
                 el.setAttribute('data-blogid', blogId);
+          }
+          if (config.debug) {
+            el.setAttribute('debug', '');
           }
         }
       })
