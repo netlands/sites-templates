@@ -35,44 +35,12 @@ function isDebugMode(url) {
 // start of page processing code
 import { test, querySelector, querySelectorAll, getAttribute } from './htmlparser.js'
 import { templateTagParser, injectLayoutClasses, cleanTitle, FinalCleanupHandler } from './templatehelper.js';
-import { cacheHelper, checkContentExistsAndCache, getCachedKV } from './helpers.js';
+import { cacheHelper, checkContentExistsAndCache, getCachedKV, resizeImage, extractBlogId, cleanBloggerArtifacts, escapeHtml } from './helpers.js';
 
 let testHtml = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="A small, structured HTML file for testing purposes."><title>Test HTML Structure</title><link rel="stylesheet" href="styles.css"></head><body><header><h1 class="title">Welcome to My Test Page</h1><h2 id="sub-heading">Subheading: Testing HTML Structure</h2></header><main><div><h2 id="part1">Part 1</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div><div><h2 id="part2">Part 2</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div></main><footer><h2 id="footer-heading">Footer Section</h2><p class="footer-text">Thank you for visiting this test page.</p></footer></body></html>';
 let lowResImage, highResImage;
 
 export const inMemoryCache = {};
-
-function extractBlogId(htmlString) {
-  const metaMatch = htmlString.match(/<meta[^>]+itemprop=["']blogId["'][^>]*content=["'](\d+)["']/i);
-  if (metaMatch) return metaMatch[1];
-
-  const linkMatch = htmlString.match(/<link[^>]+rel=["']service\.post["'][^>]*href=["'][^"']*\/feeds\/(\d+)\/posts\//i);
-  if (linkMatch) return linkMatch[1];
-
-  return null;
-}
-
-function resizeImage(imageUrl, size) {
-  return imageUrl.replace(
-    /\/(?:s\d+|w\d+-h\d+(?:-[a-z]+)*)(?=\/)/,
-    `/${size}`
-  );
-}
-
-function cleanBloggerArtifacts(html) {
-  return html
-    .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, '')
-    .replace(/<link\b[^>]*href=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widget_css_bundle\.css['"][^>]*>/gi, '')
-    .replace(/<link\b[^>]*href=['"]https:\/\/(?:www|draft)\.blogger\.com\/dyn-css\/authorization\.css\?[^'"]+['"][^>]*>/gi, '')
-    .replace(/<script\b[^>]*src=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widgets\.js['"][^>]*>\s*<\/script>/gi, '')
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, match => {
-      return /_WidgetManager\./.test(match) ? '' : match;
-    })
-    .replace(/<div[^>]*class=["']clear["'][^>]*>\s*<\/div>/gi, '')
-    .replace(/<div[^>]*id=["']searchSection["'][^>]*>[\s\S]*?<\/div>/gi, '')
-    .replace(/<div[^>]*class=["']blogger["'][^>]*>[\s\S]*?<\/div>/gi, '')
-    .replace(/<div[^>]*class=["']blog-feeds["'][^>]*>[\s\S]*?<\/div>/gi, '');
-}
 
 export default {
   async fetch(request, env, ctx) {
@@ -561,10 +529,7 @@ const insertBeforePost = (html, objectHTML) => {
         }
     }
 
-    // Escape HTML to prevent injection in titles
-    function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
+
     
 
 
@@ -875,34 +840,7 @@ data.html = data.html
         data.html = injectLayoutClasses(data.html);     
         //html = cleanTitle(html);
 
-        // remove unused blogger.com stylesheets
-        function cleanBloggerArtifacts(html) {
-          return html
-            // Remove <noscript> blocks
-            .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, '')
 
-            // Remove <link> to widget_css_bundle.css (any attribute order)
-            .replace(/<link\b[^>]*href=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widget_css_bundle\.css['"][^>]*>/gi, '')
-
-            // Remove <link> to authorization.css with any attributes, matching both 'www' and 'draft' subdomains
-            .replace(/<link\b[^>]*href=['"]https:\/\/(?:www|draft)\.blogger\.com\/dyn-css\/authorization\.css\?[^'"]+['"][^>]*>/gi, '')
-
-            // Remove <script> to NNNNNNN-widgets.js
-            .replace(/<script\b[^>]*src=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widgets\.js['"][^>]*>\s*<\/script>/gi, '')
-
-            // Remove inline <script> blocks containing _WidgetManager
-            .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, match => {
-              return /_WidgetManager\./.test(match) ? '' : match;
-            })
-
-            // Remove <div class="clear"></div>
-            .replace(/<div[^>]*class=["']clear["'][^>]*>\s*<\/div>/gi, '')
-
-            // Remove the <div id="searchSection">
-            .replace(/<div[^>]*id=["']searchSection["'][^>]*>[\s\S]*?<\/div>/gi, '')
-            .replace(/<div[^>]*class=["']blogger["'][^>]*>[\s\S]*?<\/div>/gi, '')
-            .replace(/<div[^>]*class=["']blog-feeds["'][^>]*>[\s\S]*?<\/div>/gi, '');
-        }
       
         
     data.html  = cleanBloggerArtifacts(data.html);

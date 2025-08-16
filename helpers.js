@@ -2,15 +2,12 @@ import { config, inMemoryCache } from './worker.js';
 // --- New, optimized caching functions ---
 
 /**
- * A highly configurable helper function to handle caching.
- * It first tries to find a cached response. If not found, it fetches the resource
- * from the network. On a successful fetch, it updates the cache. In case of a
- * network error, it will return a stale cache entry if available,
- * improving resilience and user experience.
+ * Handles caching for a given request and URL. Tries to return a cached response first;
+ * if not found, fetches from the network and updates the cache. Falls back to stale cache on error.
  *
  * @param {Request} request The incoming request.
  * @param {string} cacheUrl The URL to fetch and cache.
- * @param {number} cacheDurationSeconds The time-to-live for the cached asset.
+ * @param {number} cacheDurationSeconds The time-to-live for the cached asset in seconds.
  * @param {ExecutionContext} ctx The Cloudflare Worker's context object (to use `waitUntil`).
  * @returns {Promise<Response>} The response from the cache or the network.
  */
@@ -98,6 +95,15 @@ export async function cacheHelper(request, cacheUrl, cacheDurationSeconds, ctx) 
     return existsText === 'true';
   }
 
+  /**
+   * Retrieves a value from KV storage with in-memory caching for the specified duration.
+   * Returns the cached value if available and valid, otherwise fetches from KV and updates the cache.
+   *
+   * @param {any} env The environment object containing KV namespaces.
+   * @param {string} key The key to retrieve from KV.
+   * @param {number} [cacheSeconds=3600] The cache duration in seconds.
+   * @returns {Promise<any>} The value from cache or KV.
+   */
   export async function getCachedKV(env, key, cacheSeconds = 3600) {
     const now = Date.now();
     if (inMemoryCache[key] && (now - inMemoryCache[key].ts < cacheSeconds * 1000)) {
@@ -109,3 +115,85 @@ export async function cacheHelper(request, cacheUrl, cacheDurationSeconds, ctx) 
     inMemoryCache[key] = { value, ts: now };
     return value;
   }
+
+
+/**
+ * Escapes HTML special characters to prevent injection in titles and other content.
+ *
+ * @param {string} str The string to escape.
+ * @returns {string} The escaped string.
+ */
+export function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+
+/**
+ * Resizes a Blogger image URL to the specified size.
+ *
+ * @param {string} imageUrl The original image URL.
+ * @param {string} size The size string (e.g., "s200", "s0").
+ * @returns {string} The resized image URL.
+ */
+export function resizeImage(imageUrl, size) {
+  return imageUrl.replace(
+    /\/(?:s\d+|w\d+-h\d+(?:-[a-z]+)*)(?=\/)/,
+    `/${size}`
+  );
+}
+
+/**
+ * Extracts the Blogger blogId from HTML content.
+ *
+ * @param {string} htmlString The HTML string to search.
+ * @returns {string|null} The extracted blogId, or null if not found.
+ */
+export function extractBlogId(htmlString) {
+  const metaMatch = htmlString.match(/<meta[^>]+itemprop=["']blogId["'][^>]*content=["'](\d+)["']/i);
+  if (metaMatch) return metaMatch[1];
+
+  const linkMatch = htmlString.match(/<link[^>]+rel=["']service\.post["'][^>]*href=["'][^"']*\/feeds\/(\d+)\/posts\//i);
+  if (linkMatch) return linkMatch[1];
+
+  return null;
+}
+  
+/**
+ * Cleans Blogger-specific artifacts from raw HTML.
+ * Removes noscript blocks, widget CSS/JS, authorization CSS, inline scripts with _WidgetManager,
+ * and various Blogger-specific divs.
+ *
+ * @param {string} html The raw HTML string to clean.
+ * @returns {string} The cleaned HTML string.
+ */
+export function cleanBloggerArtifacts(html) {
+  return html
+    // Remove <noscript> blocks
+    .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, '')
+
+    // Remove <link> to widget_css_bundle.css (any attribute order)
+    .replace(/<link\b[^>]*href=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widget_css_bundle\.css['"][^>]*>/gi, '')
+
+    // Remove <link> to authorization.css with any attributes, matching both 'www' and 'draft' subdomains
+    .replace(/<link\b[^>]*href=['"]https:\/\/(?:www|draft)\.blogger\.com\/dyn-css\/authorization\.css\?[^'"]+['"][^>]*>/gi, '')
+
+    // Remove <script> to NNNNNNN-widgets.js
+    .replace(/<script\b[^>]*src=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widgets\.js['"][^>]*>\s*<\/script>/gi, '')
+
+    // Remove inline <script> blocks containing _WidgetManager
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, match => {
+      return /_WidgetManager\./.test(match) ? '' : match;
+    })
+
+    // Remove <div class="clear"></div>
+    .replace(/<div[^>]*class=["']clear["'][^>]*>\s*<\/div>/gi, '')
+
+    // Remove <div id="searchSection">
+    .replace(/<div[^>]*id=["']searchSection["'][^>]*>[\s\S]*?<\/div>/gi, '')
+
+    // Remove <div class="blogger"> and <div class="blog-feeds">
+    .replace(/<div[^>]*class=["']blogger["'][^>]*>[\s\S]*?<\/div>/gi, '')
+    .replace(/<div[^>]*class=["']blog-feeds["'][^>]*>[\s\S]*?<\/div>/gi, '');
+}
+
+
