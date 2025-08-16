@@ -87,6 +87,7 @@ export default {
       lowResImage: null,
       highResImage: null,
       sitename: null,
+      pageClass: 'unknown-page'
     };
 
     data.bloggerAPIkey = env.BLOGGER_API_KEY;
@@ -153,7 +154,7 @@ if (url.pathname != '/favicon.ico') {
     }
   }
 
-let pageClass = 'unknown-page';
+data.pageClass = 'unknown-page';
 let response = null;
 
 const routes = [
@@ -207,8 +208,8 @@ const routes = [
 
 for (const route of routes) {
   if (route.match) {
-    pageClass = route.pageClass;
-    const result = await route.handler(request, url, ctx, debug, data.html, env, data.blogId, pageClass);
+    data.pageClass = route.pageClass;
+    const result = await route.handler(request, url, ctx, debug, data.html, env, data.blogId, data.pageClass);
 
     if (result instanceof Response) {
       // Handler returned a final Response — terminate routing
@@ -704,7 +705,7 @@ data.html = data.html
       .on('html', {
         element(el) {
           const existing = el.getAttribute('class');
-          el.setAttribute('class', existing ? `${existing} ${pageClass}` : pageClass);
+          el.setAttribute('class', existing ? `${existing} ${data.pageClass}` : data.pageClass);
           if (data.blogId) {
                 el.setAttribute('data-blogid', data.blogId);
           }
@@ -752,7 +753,7 @@ data.html = data.html
       });
 
       // Page type specific contents
-      if (pageClass === 'post-page') {
+      if (data.pageClass === 'post-page') {
         rewriter.on('div.post', {
           element(el) {
             el.setAttribute('style', 'display:none'); // or el.remove();
@@ -774,7 +775,7 @@ data.html = data.html
         }
       }
 
-      if (pageClass === 'main-page') {  
+      if (data.pageClass === 'main-page') {  
         rewriter.on("head", new HeadPreloadInjector(lowResImage, highResImage))
       }  
 
@@ -853,7 +854,7 @@ data.html = data.html
           }
         }
 
-        if (pageClass === 'label-search' || pageClass === 'full-search' ) {
+        if (data.pageClass === 'label-search' || data.pageClass === 'full-search' ) {
           // rewriter.on("a", new HideLinksByText(targets));
           rewriter.on('div.status-msg-body', new ReplaceWordInElement('div.status-msg-body', 'posts', 'works'));
           const tagsToRemove = ['a'];
@@ -947,7 +948,7 @@ data.html = data.html
       responseHeaders.set('Cache-Control', 'public, max-age=300');
     }
 
-  const routeKey = pageClass === '/' ? '/main-page' : `/${pageClass.replace(/^\/+/, '')}`;
+  const routeKey = data.pageClass === '/' ? '/main-page' : `/${data.pageClass.replace(/^\/+/, '')}`;
 
   // Fetch KV entries
   const [htm, css, js] = await Promise.all([
