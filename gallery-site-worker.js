@@ -18,6 +18,8 @@ export const config = {
   // Add other configurable values here as needed
 };
 
+const bloggerAPIkey = env.BLOGGER_API_KEY;
+
 function isDebugMode(url) {
   if (config.debug === true) return true; // Manual override always wins
 
@@ -81,7 +83,6 @@ if (url.pathname != '/favicon.ico') {
       return null;
     }
 
-    let bloggerAPIkey = env.BLOGGER_API_KEY;
     blogId = extractBlogId(html);
 
 
