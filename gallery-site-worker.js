@@ -923,9 +923,9 @@ html = html
 
   // Fetch KV entries
   const [htm, css, js] = await Promise.all([
-    env.GALLERY.get(`html:${routeKey}`),
-    env.GALLERY.get(`css:${routeKey}`),
-    env.GALLERY.get(`js:${routeKey}`)
+    getCachedKV(env, `html:${routeKey}`),
+    getCachedKV(env, `css:${routeKey}`),
+    getCachedKV(env, `js:${routeKey}`)
   ]);
 
     if (css) {
