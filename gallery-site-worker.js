@@ -77,7 +77,19 @@ function cleanBloggerArtifacts(html) {
 export default {
   async fetch(request, env, ctx) {
 
-    const bloggerAPIkey = env.BLOGGER_API_KEY;
+    // Shared data object
+    const data = {
+      bloggerAPIkey: null,
+      html: null,
+      originalHtml: null,
+      blogId: null,
+      menuHtml: null,
+      lowResImage: null,
+      highResImage: null,
+      sitename: null,
+    };
+
+    data.bloggerAPIkey = env.BLOGGER_API_KEY;
 
     // ✅ 1. Global debug flag
     // Set to 'true' to enable detailed logging and disable caching (by setting cache duration to 1 second).
@@ -91,7 +103,7 @@ export default {
     }
 
     const originalResponse = await fetch(request);
-    let html, originalHtml, blogId, menuHtml;
+    // let html, originalHtml, blogId, menuHtml;
 
     const url = new URL(request.url);
     const path = url.pathname;
@@ -102,39 +114,39 @@ export default {
 
 if (url.pathname != '/favicon.ico') {
 
-    originalHtml = await originalResponse.text();
-    html = originalHtml;
+    data.originalHtml = await originalResponse.text();
+    data.html = data.originalHtml;
 
-    blogId = extractBlogId(html);
+    data.blogId = extractBlogId(data.html);
 
 
     /* if menu links are not hard-coded use {{menu:n}} tags in page titles to create navigation menu */
-    if (!config.useHardCodedMenu && blogId) {
+    if (!config.useHardCodedMenu && data.blogId) {
       // Use a cache key for menuHtml
-      const menuCacheKey = `menuHtml:${blogId}`;
+      const menuCacheKey = `menuHtml:${data.blogId}`;
 
       if (debug) {
         // In debug mode, always fetch fresh
-        const pageListUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages?fetchBodies=false&status=live&key=${bloggerAPIkey}`;
+        const pageListUrl = `https://www.googleapis.com/blogger/v3/blogs/${data.blogId}/pages?fetchBodies=false&status=live&key=${data.bloggerAPIkey}`;
         const pageListRes = await cacheHelper(request, pageListUrl, 1, ctx);
         const pagesJson = await pageListRes.json();
         const menuArray = getMenuEntries(pagesJson);
-        menuHtml = renderMenuLinks(menuArray);
+        data.menuHtml = renderMenuLinks(menuArray);
       } else {
         // Try to get menuHtml from in-memory cache
         if (inMemoryCache[menuCacheKey] && (Date.now() - inMemoryCache[menuCacheKey].ts < 3600 * 1000)) {
-          menuHtml = inMemoryCache[menuCacheKey].value;
+          data.menuHtml = inMemoryCache[menuCacheKey].value;
           console.log('Using cached menuHtml');
         } else {
           // Fetch menuHtml and store in cache
-          const pageListUrl = `https://www.googleapis.com/blogger/v3/blogs/${blogId}/pages?fetchBodies=false&status=live&key=${bloggerAPIkey}`;
+          const pageListUrl = `https://www.googleapis.com/blogger/v3/blogs/${data.blogId}/pages?fetchBodies=false&status=live&key=${data.bloggerAPIkey}`;
           const pageListRes = await cacheHelper(request, pageListUrl, 3600, ctx);
           const pagesJson = await pageListRes.json();
           const menuArray = getMenuEntries(pagesJson);
-          menuHtml = renderMenuLinks(menuArray);
+          data.menuHtml = renderMenuLinks(menuArray);
 
           // Store in in-memory cache
-          inMemoryCache[menuCacheKey] = { value: menuHtml, ts: Date.now() };
+          inMemoryCache[menuCacheKey] = { value: data.menuHtml, ts: Date.now() };
           console.log('Fetched and cached menuHtml');
         }
       }
@@ -196,7 +208,7 @@ const routes = [
 for (const route of routes) {
   if (route.match) {
     pageClass = route.pageClass;
-    const result = await route.handler(request, url, ctx, debug, html, env, blogId, pageClass);
+    const result = await route.handler(request, url, ctx, debug, data.html, env, data.blogId, pageClass);
 
     if (result instanceof Response) {
       // Handler returned a final Response — terminate routing
@@ -204,7 +216,7 @@ for (const route of routes) {
       break;
     } else if (typeof result === 'string') {
       // Handler returned modified HTML — continue processing
-      html = result;
+      data.html = result;
       break;
     }
   }
@@ -579,7 +591,7 @@ const insertBeforePost = (html, objectHTML) => {
     */
 
 // Extract the original body content
-const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+const bodyMatch = data.html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
 const originalBodyContent = bodyMatch?.[1]?.trim() || '';
 const wrappedMain = `<main>\n${originalBodyContent}\n</main>`;
 
@@ -646,11 +658,11 @@ if (config.useGitHub) {
 const { tags, recent } = await getMetaDataWithTimeout(url, ctx, debug);
 
 // Rebuild the body
-html = html
+data.html = data.html
   .replace('</head>', `${extraHeadContent}\n</head>`)
   // A simple check to ensure the match was successful before trying to use it.
   if (bodyMatch && bodyMatch[0]) {
-    html = html.replace(bodyMatch[0], `<body>\n${newBodyContent}\n</body>`);
+    data.html = data.html.replace(bodyMatch[0], `<body>\n${newBodyContent}\n</body>`);
   } else {
     // Handle the case where no match was found.
     console.error("Could not find the <body> tag to replace.");
@@ -661,7 +673,7 @@ html = html
     // add site personalization based on the title
      let sitename = 'Gallery'; // default fallback
     // Try to extract from data-sitename in the <html> tag
-    const htmlTagMatch = html.match(/<html[^>]*?\sdata-sitename=["']([^"']+)["']/i);
+    const htmlTagMatch = data.html.match(/<html[^>]*?\sdata-sitename=["']([^"']+)["']/i);
     if (htmlTagMatch) {
       sitename = htmlTagMatch[1];
     }
@@ -693,8 +705,8 @@ html = html
         element(el) {
           const existing = el.getAttribute('class');
           el.setAttribute('class', existing ? `${existing} ${pageClass}` : pageClass);
-          if (blogId) {
-                el.setAttribute('data-blogid', blogId);
+          if (data.blogId) {
+                el.setAttribute('data-blogid', data.blogId);
           }
           if (config.debug) {
             el.setAttribute('debug', '');
@@ -783,7 +795,7 @@ html = html
       }
       
       // insert menu
-      rewriter.on('div.nav-section.collapsible-menu', new MenuInjector(menuHtml)); 
+      rewriter.on('div.nav-section.collapsible-menu', new MenuInjector(data.menuHtml)); 
             
 
 
@@ -859,7 +871,7 @@ html = html
         // template related functions
         // Use the single, unified parser for all content transformations
         rewriter.on('*', new templateTagParser());      
-        html = injectLayoutClasses(html);     
+        data.html = injectLayoutClasses(data.html);     
         //html = cleanTitle(html);
 
         // remove unused blogger.com stylesheets
@@ -892,9 +904,9 @@ html = html
         }
       
         
-    html  = cleanBloggerArtifacts(html);
+    data.html  = cleanBloggerArtifacts(data.html);
  
-    html = html.replace(/&nbsp;/g, '\u00A0');
+    data.html = data.html.replace(/&nbsp;/g, '\u00A0');
 
     rewriter.on('title', new FinalCleanupHandler());
     rewriter.on('h3', new FinalCleanupHandler());
@@ -959,7 +971,7 @@ html = html
 
 
 
-    return rewriter.transform(new Response(html, {
+    return rewriter.transform(new Response(data.html, {
       headers: responseHeaders
     }));
   }
