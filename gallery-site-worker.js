@@ -1014,7 +1014,8 @@ async function getMetaDataWithTimeout(url, ctx, debug = false, timeout = 2000) {
     const tags = Array.from(tagsSet).sort();
     const recent = recentPosts
     .filter(post => post.published) // ensures published exists
-    .sort((a, b) => new Date(b.published) - new Date(a.published)) // warning regarding date formatting can be ignored
+    //.sort((a, b) => new Date(b.published) - new Date(a.published)) // warning regarding date formatting can be ignored
+    .sort((a, b) => new Date(b.published).valueOf() - new Date(a.published).valueOf()) 
     .slice(0, 5);
   
     return { tags, recent };
