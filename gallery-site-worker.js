@@ -18,7 +18,6 @@ export const config = {
   // Add other configurable values here as needed
 };
 
-const bloggerAPIkey = env.BLOGGER_API_KEY;
 
 function isDebugMode(url) {
   if (config.debug === true) return true; // Manual override always wins
@@ -43,8 +42,42 @@ let lowResImage, highResImage;
 
 export const inMemoryCache = {};
 
+function extractBlogId(htmlString) {
+  const metaMatch = htmlString.match(/<meta[^>]+itemprop=["']blogId["'][^>]*content=["'](\d+)["']/i);
+  if (metaMatch) return metaMatch[1];
+
+  const linkMatch = htmlString.match(/<link[^>]+rel=["']service\.post["'][^>]*href=["'][^"']*\/feeds\/(\d+)\/posts\//i);
+  if (linkMatch) return linkMatch[1];
+
+  return null;
+}
+
+function resizeImage(imageUrl, size) {
+  return imageUrl.replace(
+    /\/(?:s\d+|w\d+-h\d+(?:-[a-z]+)*)(?=\/)/,
+    `/${size}`
+  );
+}
+
+function cleanBloggerArtifacts(html) {
+  return html
+    .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, '')
+    .replace(/<link\b[^>]*href=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widget_css_bundle\.css['"][^>]*>/gi, '')
+    .replace(/<link\b[^>]*href=['"]https:\/\/(?:www|draft)\.blogger\.com\/dyn-css\/authorization\.css\?[^'"]+['"][^>]*>/gi, '')
+    .replace(/<script\b[^>]*src=['"]https:\/\/www\.blogger\.com\/static\/v1\/widgets\/\d+-widgets\.js['"][^>]*>\s*<\/script>/gi, '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, match => {
+      return /_WidgetManager\./.test(match) ? '' : match;
+    })
+    .replace(/<div[^>]*class=["']clear["'][^>]*>\s*<\/div>/gi, '')
+    .replace(/<div[^>]*id=["']searchSection["'][^>]*>[\s\S]*?<\/div>/gi, '')
+    .replace(/<div[^>]*class=["']blogger["'][^>]*>[\s\S]*?<\/div>/gi, '')
+    .replace(/<div[^>]*class=["']blog-feeds["'][^>]*>[\s\S]*?<\/div>/gi, '');
+}
+
 export default {
   async fetch(request, env, ctx) {
+
+    const bloggerAPIkey = env.BLOGGER_API_KEY;
 
     // ✅ 1. Global debug flag
     // Set to 'true' to enable detailed logging and disable caching (by setting cache duration to 1 second).
@@ -71,17 +104,6 @@ if (url.pathname != '/favicon.ico') {
 
     originalHtml = await originalResponse.text();
     html = originalHtml;
-
-    // Helper function to extract blogId from HTML string
-    function extractBlogId(htmlString) {
-      const metaMatch = htmlString.match(/<meta[^>]+itemprop=["']blogId["'][^>]*content=["'](\d+)["']/i);
-      if (metaMatch) return metaMatch[1];
-
-      const linkMatch = htmlString.match(/<link[^>]+rel=["']service\.post["'][^>]*href=["'][^"']*\/feeds\/(\d+)\/posts\//i);
-      if (linkMatch) return linkMatch[1];
-
-      return null;
-    }
 
     blogId = extractBlogId(html);
 
@@ -208,13 +230,6 @@ if (response) {
         const bgImageURL = firstImgMatch?.[1];
 
         // main-page art related code
-        function resizeImage(imageUrl, size) {
-            return imageUrl.replace(
-                /\/(?:s\d+|w\d+-h\d+(?:-[a-z]+)*)(?=\/)/,
-                `/${size}`
-            );
-        }
-
         lowResImage = resizeImage(bgImageURL, "s200");
         highResImage = resizeImage(bgImageURL, "s0");
 
