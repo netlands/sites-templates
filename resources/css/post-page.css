@@ -31,8 +31,11 @@
             margin-top: 80px;
         }
 
-        .object-title {
+        h3.object-title {
             display: none;
+        }
+
+        .object-title {
             font-size: 1.75rem;
             font-weight: 700;
             color: #1f2937;
