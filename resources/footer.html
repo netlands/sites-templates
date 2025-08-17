@@ -208,7 +208,7 @@ function fitAndCenterImage() {
           zoomedImage.src = originalSrc;
           overlay.style.display = 'flex';
 
-          zoomedImage.onload = () => {
+          zoomedImage.onload = () => {  
             naturalWidth = zoomedImage.naturalWidth;
             naturalHeight = zoomedImage.naturalHeight;
 
@@ -217,7 +217,8 @@ function fitAndCenterImage() {
             maxZoomScale = longestSide > 2048 ? 2.5 : 5;
 
             fitAndCenterImage();    
-      }
+          } 
+      }  
 
 
 
