@@ -121,6 +121,7 @@
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+
   const overlay = document.getElementById('image-overlay');
   const zoomedImage = document.getElementById('zoomed-image');
   const closeBtn = document.getElementById('close-overlay');
@@ -181,15 +182,15 @@ function fitAndCenterImage() {
       };
     });
 
-const caption = img.getAttribute('alt') || '';
-document.getElementById('image-caption').textContent = caption;
+    const caption = img.getAttribute('alt') || '';
+    document.getElementById('image-caption').textContent = caption;
 
-// Toggle caption visibility based on CSS class
-if (img.classList.contains('show-caption')) {
-  overlay.classList.add('show-caption');
-} else {
-  overlay.classList.remove('show-caption');
-}
+    // Toggle caption visibility based on CSS class
+    if (img.classList.contains('show-caption')) {
+      overlay.classList.add('show-caption');
+    } else {
+      overlay.classList.remove('show-caption');
+    }
 
 
     const preloadSrc = img.getAttribute('data-original-src');
@@ -198,6 +199,28 @@ if (img.classList.contains('show-caption')) {
       preload.src = preloadSrc;
     }
   });
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const view = urlParams.get("view");
+
+      if (view === "image") {
+          const originalSrc = img.getAttribute('data-original-src') || img.src;
+          zoomedImage.src = originalSrc;
+          overlay.style.display = 'flex';
+
+          zoomedImage.onload = () => {
+            naturalWidth = zoomedImage.naturalWidth;
+            naturalHeight = zoomedImage.naturalHeight;
+
+            // Set max zoom based on longest side
+            const longestSide = Math.max(naturalWidth, naturalHeight);
+            maxZoomScale = longestSide > 2048 ? 2.5 : 5;
+
+            fitAndCenterImage();    
+      }
+
+
+
 
   closeBtn.addEventListener('click', () => {
     overlay.style.display = 'none';

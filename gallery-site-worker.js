@@ -662,7 +662,11 @@ data.html = data.html
     // 'https://raw.githubusercontent.com/netlands/sites-templates/main/' + sanitizedName + '-logo.' + logotype;
     // ✅ 3. Pass debug flag to cache function
     const logoExists = await checkContentExistsAndCache(new URL(LOGO_URL), ctx);
-   
+
+
+
+    const viewParam = url.searchParams.get("view"); // e.g., "focus-view"
+
     
     const rewriter = new HTMLRewriter()
 
@@ -678,6 +682,14 @@ data.html = data.html
             el.setAttribute('debug', '');
           }
         }
+      })
+
+      .on("div.object", {
+        element(el) {
+          if (viewParam) {
+            el.setAttribute("class", `object ${viewParam}`);
+          }
+        }  
       })
 
       // theme/site specific content
