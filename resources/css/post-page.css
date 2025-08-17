@@ -1,0 +1,214 @@
+
+
+/* post-page.css */
+/* container for object */
+        date-posts {
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+            margin-top: 50px;
+            box-sizing: border-box;
+        }
+
+        /*
+        * Custom CSS for all layouts
+        * This section defines shared styles for all versions of the artwork card.
+        */
+        .object {
+            width: 100%;
+            max-width: 800px;
+            background-color: #ffffff;
+            border-radius: 0;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            transition: all 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 80px;
+        }
+
+        .object-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1f2937;
+            text-align: center;
+            margin: 0;
+        }
+
+        .object-image .image-frame {
+            border-radius: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .object-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .card {
+            border-radius: 0;
+            background-color: #f9fafb;
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .field .key {
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .field .value {
+            color: #6b7280;
+        }
+
+        .notes p {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #4b5563;
+            margin-bottom: 1rem;
+        }
+
+        .object-labels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .object-label a {
+            background-color: #e5e7eb;
+            color: #4b5563;
+            padding: 0.5rem 1rem;
+            border-radius: 0;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .object-label a:hover {
+            background-color: #d1d5db;
+        }
+
+        /*
+        * Layout 1: Default View
+        * This is the default stacked layout. No special class needed for this.
+        */
+
+        /*
+        * Layout 2: Focused View
+        * This layout emphasizes the image, making it larger.
+        */
+        .object.focus-view {
+            max-width: 1000px; /* Make the container larger */
+        }
+        .object.focus-view .object-image {
+            order: -1; /* Move the image to the top */
+        }
+        .object.focus-view .object-image .image-frame {
+            padding: 0;
+            border-radius: 0;
+        }
+        .object.focus-view .object-image img {
+            max-height: 70vh; /* Make the image taller, relative to viewport height */
+            object-fit: contain;
+        }
+        .object.focus-view .object-title {
+            text-align: left;
+            font-size: 2.25rem;
+        }
+
+        /*
+        * Layout 3: Condensed View
+        * This layout places the image and info card side-by-side.
+        */
+        .object.condensed-view {
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: auto;
+            gap: 2rem;
+        }
+
+        .object.condensed-view .object-title {
+            grid-area: title;
+            text-align: left;
+        }
+
+        .object.condensed-view .object-image {
+            grid-area: image;
+        }
+
+        .object.condensed-view .card {
+            grid-area: card;
+            padding: 1.25rem;
+            border-radius: 0;
+        }
+
+        .object.condensed-view .notes {
+            grid-area: notes;
+        }
+
+        .object.condensed-view .object-labels {
+            grid-area: labels;
+        }
+
+        /* Use a two-column grid for larger screens in condensed view */
+        @media (min-width: 768px) {
+            .object.condensed-view {
+                grid-template-areas:
+                    "title title"
+                    "image card"
+                    "notes notes"
+                    "labels labels";
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+        @media (min-width: 1024px) {
+            .object.condensed-view {
+                grid-template-areas:
+                    "title title"
+                    "image card"
+                    "notes notes"
+                    "labels labels";
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+        
+        /* Styles for control buttons */
+        .controls {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            z-index: 10;
+        }
+
+        .controls button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .controls button:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+        }
