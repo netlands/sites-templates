@@ -121,7 +121,6 @@
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-
   const overlay = document.getElementById('image-overlay');
   const zoomedImage = document.getElementById('zoomed-image');
   const closeBtn = document.getElementById('close-overlay');
@@ -182,15 +181,15 @@ function fitAndCenterImage() {
       };
     });
 
-    const caption = img.getAttribute('alt') || '';
-    document.getElementById('image-caption').textContent = caption;
+const caption = img.getAttribute('alt') || '';
+document.getElementById('image-caption').textContent = caption;
 
-    // Toggle caption visibility based on CSS class
-    if (img.classList.contains('show-caption')) {
-      overlay.classList.add('show-caption');
-    } else {
-      overlay.classList.remove('show-caption');
-    }
+// Toggle caption visibility based on CSS class
+if (img.classList.contains('show-caption')) {
+  overlay.classList.add('show-caption');
+} else {
+  overlay.classList.remove('show-caption');
+}
 
 
     const preloadSrc = img.getAttribute('data-original-src');
@@ -200,7 +199,6 @@ function fitAndCenterImage() {
     }
   });
 
-  // Close button
   closeBtn.addEventListener('click', () => {
     overlay.style.display = 'none';
   });
