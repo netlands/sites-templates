@@ -200,29 +200,7 @@ function fitAndCenterImage() {
     }
   });
 
-      const urlParams = new URLSearchParams(window.location.search);
-      const view = urlParams.get("view");
-
-      if (view === "image") {
-          const originalSrc = img.getAttribute('data-original-src') || img.src;
-          zoomedImage.src = originalSrc;
-          overlay.style.display = 'flex';
-
-          zoomedImage.onload = () => {  
-            naturalWidth = zoomedImage.naturalWidth;
-            naturalHeight = zoomedImage.naturalHeight;
-
-            // Set max zoom based on longest side
-            const longestSide = Math.max(naturalWidth, naturalHeight);
-            maxZoomScale = longestSide > 2048 ? 2.5 : 5;
-
-            fitAndCenterImage();    
-          } 
-      }  
-
-
-
-
+  // Close button
   closeBtn.addEventListener('click', () => {
     overlay.style.display = 'none';
   });
