@@ -2,8 +2,7 @@
 
 /* post-page.css */
 /* container for object */
-        .date-posts {
-
+        date-posts {
             display: flex;
             justify-content: center;
             align-items: flex-start; /* Changed to start from the top */
