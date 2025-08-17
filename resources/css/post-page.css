@@ -2,14 +2,14 @@
 
 /* post-page.css */
 /* container for object */
-        date-posts {
+        .date-posts {
 
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start; /* Changed to start from the top */
             min-height: 100vh;
             padding: 2rem;
-            margin-top: 50px;
+            margin: 0;
             box-sizing: border-box;
         }
 
@@ -21,14 +21,15 @@
             width: 100%;
             max-width: 800px;
             background-color: #ffffff;
-            border-radius: 0;
+            border-radius: 1.5rem;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             padding: 2rem;
             transition: all 0.3s ease-in-out;
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            margin-top: 80px;
+            margin-top: 80px; /* Added top margin */
+            height: calc(100vh - 80px - 4rem); /* Set height to fill viewport, subtracting margin and padding */
         }
 
         .object-title {
@@ -40,7 +41,7 @@
         }
 
         .object-image .image-frame {
-            border-radius: 0;
+            border-radius: 1rem;
             overflow: hidden;
             display: flex;
             justify-content: center;
@@ -54,7 +55,7 @@
         }
 
         .card {
-            border-radius: 0;
+            border-radius: 1rem;
             background-color: #f9fafb;
             padding: 1.5rem;
             border: 1px solid #e5e7eb;
@@ -89,7 +90,7 @@
             background-color: #e5e7eb;
             color: #4b5563;
             padding: 0.5rem 1rem;
-            border-radius: 0;
+            border-radius: 9999px;
             text-decoration: none;
             font-size: 0.875rem;
             font-weight: 600;
@@ -117,7 +118,7 @@
         }
         .object.focus-view .object-image .image-frame {
             padding: 0;
-            border-radius: 0;
+            border-radius: 1.5rem;
         }
         .object.focus-view .object-image img {
             max-height: 70vh; /* Make the image taller, relative to viewport height */
@@ -152,7 +153,6 @@
         .object.condensed-view .card {
             grid-area: card;
             padding: 1.25rem;
-            border-radius: 0;
         }
 
         .object.condensed-view .notes {
@@ -200,7 +200,7 @@
             background-color: #3b82f6;
             color: white;
             padding: 0.75rem 1.5rem;
-            border-radius: 0;
+            border-radius: 9999px;
             font-weight: 600;
             border: none;
             cursor: pointer;
