@@ -8,13 +8,19 @@
  getElementsByTagName(html, tagName, options = {})
  getElementsByName(html, name, options = {}) 
  getAttribute(html, selector, attributeName)
+ deleteElements(html, selector, options = {})
+ replaceElements(html, selector, newHtml, options = {})
+ setAttributes(html, selector, attributes, options = {})
 
 Example use:
- import { querySelector, querySelectorAll } from './htmlparser.js'
+ import { querySelector, querySelectorAll, deleteElements, replaceElements, setAttributes } from './htmlparser.js'
 
  default: const outerHtmlContent = await querySelector(html, 'div'); // No options, or { returnInnerHtml: false }
  return innerHTML: const innerHtmlContent = await querySelector(html, 'div', { returnInnerHtml: true });
  strip all tags: const plainTextContent = await querySelector(html, 'div', { returnInnerHtml: true, stripTags: true });
+ delete first element: const newHtml = await deleteElements(html, '.ad', { firstOnly: true });
+ replace all elements: const updatedHtml = await replaceElements(html, 'span.old', '<div>New Content</div>');
+ set attributes: const finalHtml = await setAttributes(html, 'img', { class: 'responsive', 'data-loaded': 'true' });
 */
 
 const debug = true;
@@ -119,6 +125,61 @@ class Collector {
 }
 
 /**
+ * A generic handler for deleting or replacing elements.
+ */
+class ElementHandler {
+    constructor(newHtml = '', options = {}) {
+        this.newHtml = newHtml;
+        this.firstOnly = options.firstOnly || false;
+        this.alreadyActed = false; // to track if the action has been performed for firstOnly
+    }
+
+    element(element) {
+        if (this.firstOnly && this.alreadyActed) {
+            return; // Do nothing if we only act on the first and have already done so.
+        }
+
+        if (this.newHtml === null) { // Deletion
+            element.remove();
+        } else { // Replacement
+            element.replace(this.newHtml, { html: true });
+        }
+        
+        this.alreadyActed = true;
+    }
+}
+
+/**
+ * A handler for setting or removing attributes on an element.
+ */
+class AttributeHandler {
+    constructor(attributes, options = {}) {
+        this.attributes = attributes;
+        this.firstOnly = options.firstOnly || false;
+        this.alreadyActed = false;
+    }
+
+    element(element) {
+        if (this.firstOnly && this.alreadyActed) {
+            return;
+        }
+
+        for (const [key, value] of Object.entries(this.attributes)) {
+            if (value === null) {
+                // If the value is null, remove the attribute
+                element.removeAttribute(key);
+            } else {
+                // Otherwise, set the attribute
+                element.setAttribute(key, value);
+            }
+        }
+
+        this.alreadyActed = true;
+    }
+}
+
+
+/**
  * Internal helper: Runs HTMLRewriter with a dual-handler setup.
  * @param {string} html The HTML string to parse.
  * @param {string} selector The CSS selector for elements to collect.
@@ -169,7 +230,7 @@ async function _runRewriter(html, selector, options = {}) {
     comments(comment) {
       if (collector.isCapturing) {
         console.log("ContentHandler: capturing comment");
-        collector.captureBuffer += `<!--${comment.text}-->`;
+        collector.captureBuffer += ``;
       }
     }
   };
@@ -369,4 +430,103 @@ export async function getAttribute(html, selector, attributeName) {
   const collector = await _runRewriter(html, selector, { attributeName: attributeName });
   // querySelector logic returns the first item or null
   return collector.results.length ? collector.results[0] : null;
+}
+
+/**
+ * Deletes elements from an HTML string based on a CSS selector.
+ * @param {string} html The HTML string to parse.
+ * @param {string} selector The CSS selector for the elements to delete.
+ * @param {object} [options={}] - Configuration options.
+ * @param {boolean} [options.firstOnly=false] - If true, deletes only the first matched element.
+ * @returns {Promise<string>} The modified HTML string.
+ */
+export async function deleteElements(html, selector, options = {}) {
+    const handler = new ElementHandler(null, options);
+    
+    const encoder = new TextEncoder();
+    const readableStream = new ReadableStream({
+        start(controller) {
+            controller.enqueue(encoder.encode(html));
+            controller.close();
+        }
+    });
+
+    const responseStream = new Response(readableStream, {
+        headers: { 'content-type': 'text/html' }
+    });
+
+    const rewriter = new HTMLRewriter().on(selector, handler);
+    const transformedResponse = rewriter.transform(responseStream);
+
+    return await transformedResponse.text();
+}
+
+/**
+ * Replaces elements in an HTML string with a new HTML string.
+ * @param {string} html The HTML string to parse.
+ * @param {string} selector The CSS selector for the elements to replace.
+ * @param {string} newHtml The HTML string to be used as a replacement.
+ * @param {object} [options={}] - Configuration options.
+ * @param {boolean} [options.firstOnly=false] - If true, replaces only the first matched element.
+ * @returns {Promise<string>} The modified HTML string.
+ */
+export async function replaceElements(html, selector, newHtml, options = {}) {
+    if (typeof newHtml !== 'string') {
+        console.error("ERROR: newHtml must be a string for replaceElements.");
+        return html; // Return original html if newHtml is invalid
+    }
+    
+    const handler = new ElementHandler(newHtml, options);
+
+    const encoder = new TextEncoder();
+    const readableStream = new ReadableStream({
+        start(controller) {
+            controller.enqueue(encoder.encode(html));
+            controller.close();
+        }
+    });
+
+    const responseStream = new Response(readableStream, {
+        headers: { 'content-type': 'text/html' }
+    });
+
+    const rewriter = new HTMLRewriter().on(selector, handler);
+    const transformedResponse = rewriter.transform(responseStream);
+
+    return await transformedResponse.text();
+}
+
+/**
+ * Sets or removes attributes on elements matching a CSS selector.
+ * @param {string} html The HTML string to parse.
+ * @param {string} selector The CSS selector for the elements to modify.
+ * @param {object} attributes An object of attributes to set. The key is the attribute name and the value is the attribute value. A value of `null` will remove the attribute.
+ * @param {object} [options={}] - Configuration options.
+ * @param {boolean} [options.firstOnly=false] - If true, modifies only the first matched element.
+ * @returns {Promise<string>} The modified HTML string.
+ */
+export async function setAttributes(html, selector, attributes, options = {}) {
+    if (typeof attributes !== 'object' || attributes === null) {
+        console.error("ERROR: attributes must be an object for setAttributes.");
+        return html;
+    }
+
+    const handler = new AttributeHandler(attributes, options);
+
+    const encoder = new TextEncoder();
+    const readableStream = new ReadableStream({
+        start(controller) {
+            controller.enqueue(encoder.encode(html));
+            controller.close();
+        }
+    });
+
+    const responseStream = new Response(readableStream, {
+        headers: { 'content-type': 'text/html' }
+    });
+    
+    const rewriter = new HTMLRewriter().on(selector, handler);
+    const transformedResponse = rewriter.transform(responseStream);
+
+    return await transformedResponse.text();
 }

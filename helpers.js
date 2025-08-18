@@ -185,8 +185,8 @@ export function cleanBloggerArtifacts(html) {
       return /_WidgetManager\./.test(match) ? '' : match;
     })
 
-    // Remove <div class="clear"></div>
-    .replace(/<div[^>]*class=["']clear["'][^>]*>\s*<\/div>/gi, '')
+    // Remove <div class="clear"></div> and <div style="clear: both;"></div>
+    .replace(/<div[^>]*\s(?:class="clear"|style="clear:\s*both;")[^>]*>[\s\S]*?<\/div>/gi, '')
 
     // Remove <div id="searchSection">
     .replace(/<div[^>]*id=["']searchSection["'][^>]*>[\s\S]*?<\/div>/gi, '')

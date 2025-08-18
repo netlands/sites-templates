@@ -33,7 +33,7 @@ function isDebugMode(url) {
 }
 
 // start of page processing code
-import { test, querySelector, querySelectorAll, getAttribute } from './htmlparser.js'
+import { test, querySelector, querySelectorAll, getAttribute, deleteElements, replaceElements, setAttributes } from './htmlparser.js'
 import { templateTagParser, injectLayoutClasses, cleanTitle, FinalCleanupHandler } from './templatehelper.js';
 import { cacheHelper, checkContentExistsAndCache, getCachedKV, resizeImage, extractBlogId, cleanBloggerArtifacts, escapeHtml } from './helpers.js';
 
@@ -844,7 +844,13 @@ data.html = data.html
           tagsToRemove.forEach(tag => {
             rewriter.on(`div.status-msg-body ${tag}`, new RemoveElement());
           });
+
         }
+
+        if (data.pageClass === 'label-search' || data.pageClass === 'full-search' || data.pageClass === 'post-page' || data.pageClass === 'main-page') {
+          data.html = await simplifyHtml(data.html,'div.main', ['div.blog-posts', 'div.blog-pager'])
+        }  
+
 
         // template related functions
         // Use the single, unified parser for all content transformations
@@ -1103,4 +1109,38 @@ class HtmlInjector {
     el.append(this.html, { html: true });
   }
 }
+
+
+
+export async function simplifyHtml(htmlText, startSelector, keepSelectors = []) {
+  // Step 1: Get full outer HTML of startSelector
+  const startOuter = await querySelector(htmlText, startSelector, { returnInnerHtml: false });
+  if (!startOuter || typeof startOuter !== 'string') return htmlText;
+
+  const kept = [];
+  const seenOffsets = [];
+
+  // Step 2: For each keepSelector, find top-level matches inside startInner
+  for (const keepSel of keepSelectors) {
+    const matches = await querySelectorAll(startOuter, keepSel, { returnInnerHtml: false });
+
+    if (Array.isArray(matches)) {
+      for (const block of matches) {
+        console.log(block);
+        // Avoid nested matches: skip if this block is inside a previously kept block
+        if (seenOffsets.some(parent => parent.includes(block))) continue;
+
+        kept.push(block);
+        seenOffsets.push(block); // Track to avoid nesting
+      }
+    }
+  }
+
+  htmlText = replaceElements(htmlText,startSelector,kept.join(''))
+  // Step 3: Replace full startSelector block with kept blocks
+  return htmlText;
+}
+
+
+
 
