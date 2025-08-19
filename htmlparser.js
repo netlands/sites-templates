@@ -11,9 +11,10 @@
  deleteElements(html, selector, options = {})
  replaceElements(html, selector, newHtml, options = {})
  setAttributes(html, selector, attributes, options = {})
+ insertHtml(html, selector, position, newHtml, options = {})
 
 Example use:
- import { querySelector, querySelectorAll, deleteElements, replaceElements, setAttributes } from './htmlparser.js'
+ import { querySelector, querySelectorAll, deleteElements, replaceElements, setAttributes, insertHtml } from './htmlparser.js'
 
  default: const outerHtmlContent = await querySelector(html, 'div'); // No options, or { returnInnerHtml: false }
  return innerHTML: const innerHtmlContent = await querySelector(html, 'div', { returnInnerHtml: true });
@@ -21,6 +22,7 @@ Example use:
  delete first element: const newHtml = await deleteElements(html, '.ad', { firstOnly: true });
  replace all elements: const updatedHtml = await replaceElements(html, 'span.old', '<div>New Content</div>');
  set attributes: const finalHtml = await setAttributes(html, 'img', { class: 'responsive', 'data-loaded': 'true' });
+ insert at end of head: const newHtml = await insertHtml(html, 'head', 'beforeend', '<style>body { color: blue; }</style>');
 */
 
 const debug = true;
@@ -178,6 +180,49 @@ class AttributeHandler {
     }
 }
 
+
+/**
+ * A handler for inserting HTML relative to an element.
+ */
+class InsertHandler {
+    /**
+     * @param {string} position The position to insert the HTML.
+     * @param {string} newHtml The HTML string to insert.
+     * @param {object} [options={}] - Configuration options.
+     */
+    constructor(position, newHtml, options = {}) {
+        this.position = position;
+        this.newHtml = newHtml;
+        this.firstOnly = options.firstOnly || false;
+        this.alreadyActed = false;
+    }
+
+    element(element) {
+        if (this.firstOnly && this.alreadyActed) {
+            return;
+        }
+
+        switch (this.position) {
+            case 'beforebegin':
+                element.before(this.newHtml, { html: true });
+                break;
+            case 'afterbegin':
+                element.prepend(this.newHtml, { html: true });
+                break;
+            case 'beforeend':
+                element.append(this.newHtml, { html: true });
+                break;
+            case 'afterend':
+                element.after(this.newHtml, { html: true });
+                break;
+            default:
+                console.error(`ERROR: Invalid position '${this.position}'. Use 'beforebegin', 'afterbegin', 'beforeend', or 'afterend'.`);
+                break;
+        }
+
+        this.alreadyActed = true;
+    }
+}
 
 /**
  * Internal helper: Runs HTMLRewriter with a dual-handler setup.
@@ -513,6 +558,47 @@ export async function setAttributes(html, selector, attributes, options = {}) {
 
     const handler = new AttributeHandler(attributes, options);
 
+    const encoder = new TextEncoder();
+    const readableStream = new ReadableStream({
+        start(controller) {
+            controller.enqueue(encoder.encode(html));
+            controller.close();
+        }
+    });
+
+    const responseStream = new Response(readableStream, {
+        headers: { 'content-type': 'text/html' }
+    });
+    
+    const rewriter = new HTMLRewriter().on(selector, handler);
+    const transformedResponse = rewriter.transform(responseStream);
+
+    return await transformedResponse.text();
+}
+
+/**
+ * Inserts new HTML content relative to an element.
+ * The positions correspond to the standard browser `insertAdjacentHTML` method.
+ * @param {string} html The HTML string to parse.
+ * @param {string} selector The CSS selector for the target element.
+ * @param {string} position The position to insert the HTML. Must be one of 'beforebegin', 'afterbegin', 'beforeend', 'afterend'.
+ * @param {string} newHtml The HTML string to insert.
+ * @param {object} [options={}] - Configuration options.
+ * @param {boolean} [options.firstOnly=false] - If true, modifies only the first matched element.
+ * @returns {Promise<string>} The modified HTML string.
+ */
+export async function insertHtml(html, selector, position, newHtml, options = {}) {
+    if (typeof newHtml !== 'string') {
+        console.error("ERROR: newHtml must be a string for insertHtml.");
+        return html;
+    }
+    if (!['beforebegin', 'afterbegin', 'beforeend', 'afterend'].includes(position)) {
+        console.error(`ERROR: Invalid position '${position}'. Use 'beforebegin', 'afterbegin', 'beforeend', or 'afterend'.`);
+        return html;
+    }
+
+    const handler = new InsertHandler(position, newHtml, options);
+    
     const encoder = new TextEncoder();
     const readableStream = new ReadableStream({
         start(controller) {

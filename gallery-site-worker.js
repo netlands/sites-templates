@@ -10,14 +10,19 @@
  */
 
 export const config = {
-  debug: true, // Set to 'true' to enable detailed logging and disable caching (by setting cache duration to 1 second).
+  debug: false, // Set to 'true' to enable detailed logging and disable caching (by setting cache duration to 1 second).
   useGitHub: false, // Use GitHub for templates (slower but easier to edit)
   useHardCodedMenu: false, // Use hardcoded menu links instead of scraping page titles.
   cacheDurationSeconds: 3600, // Duration to cache resources in seconds
   maxMenuEntries: 5,         // Maximum number of menu links to display
+  bundleScripts: true, // Consolidate all addded script blocks into one script tag at the end of the body element
+  bundleStyles: true, // Consolidate all addded style blocks into one style tag in the head element
   // Add other configurable values here as needed
 };
 
+// Global arrays to store the contents of the tags to be bundled.
+let styleArray = [];
+let scriptArray = [];
 
 function isDebugMode(url) {
   if (config.debug === true) return true; // Manual override always wins
@@ -33,7 +38,7 @@ function isDebugMode(url) {
 }
 
 // start of page processing code
-import { test, querySelector, querySelectorAll, getAttribute, deleteElements, replaceElements, setAttributes } from './htmlparser.js'
+import { test, querySelector, querySelectorAll, getAttribute, deleteElements, replaceElements, setAttributes, insertHtml } from './htmlparser.js'
 import { templateTagParser, injectLayoutClasses, cleanTitle, FinalCleanupHandler } from './templatehelper.js';
 import { cacheHelper, checkContentExistsAndCache, getCachedKV, resizeImage, extractBlogId, cleanBloggerArtifacts, escapeHtml } from './helpers.js';
 
@@ -561,7 +566,7 @@ const bodyMatch = data.html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
 const originalBodyContent = bodyMatch?.[1]?.trim() || '';
 const wrappedMain = `<main>\n${originalBodyContent}\n</main>`;
 
-let extraHeadContent, newBodyContent = "";
+let extraHeadContent = "", newBodyContent = "";
 
 // add default content blocks
 if (config.useGitHub) { 
@@ -609,9 +614,13 @@ if (config.useGitHub) {
     kvKeys.map(key => getCachedKV(env, key))
   );
   extraHeadContent = head || "";
-  let defaultStyle, defaultScript = ""
-  if (style) defaultStyle = `\n<style>${style}</style>` || "";
-  if (script) defaultScript = `\n<script>${script}</script>` || "";
+  let defaultStyle = "", defaultScript = "";
+  if (style) { 
+    if (!config.bundleStyles) { defaultStyle = `\n<style>${style}</style>` || ""; } else { styleArray.push(style); }
+  }
+  if (script) { 
+    if (!config.bundleScripts) { defaultScript = `\n<script>${script}</script>` || ""; } else { scriptArray.push(script); }
+  }
   const headerElement = header || "";
   const footerElement = footer || "";
 
@@ -653,9 +662,11 @@ data.html = data.html
       // ✅ 3. Pass debug flag to cache function
       const cssResponse = await cacheHelper(request, styleUrl, debug ? 1 : 86400, ctx);
       inlineCSS = await cssResponse.text();
+      if (config.bundleStyles) styleArray.push(inlineCSS);
     } catch (err) {
       console.error(`CSS fetch failed: ${err}`);
     }
+
 
     const logotype = "png"; // svg
     let LOGO_URL = 'https://s2.netlands.net/' + sanitizedName + '-logo.' + logotype;
@@ -713,8 +724,8 @@ data.html = data.html
             "class",
             currentValue ? `${currentValue} theme-${sanitizedName}` : `theme-${sanitizedName}`
           );            
-          if (inlineCSS.trim()) {
-            el.append(`<style>\n${inlineCSS}\n</style>`, { html: true });
+          if (inlineCSS.trim() && !config.bundleStyles) {
+            el.append(`<style>\n/* theme-${sanitizedName} */\n${inlineCSS}\n</style>`, { html: true });
           }
         }
       })
@@ -914,10 +925,14 @@ data.html = data.html
   ]);
 
     if (css) {
-      rewriter.on('body', new StyleInjector(css));
+      if (!config.bundleStyles) { rewriter.on('body', new StyleInjector(css)); } else {
+        styleArray.push(css);       
+      }
     }
     if (js) {
-      rewriter.on('body', new ScriptInjector(js));
+      if (!config.bundleScripts) { rewriter.on('body', new ScriptInjector(js)); } else {
+        scriptArray.push(js); 
+      }
     }
     if (htm) {
       rewriter.on('body', new HtmlInjector(htm));
@@ -925,8 +940,25 @@ data.html = data.html
 
 
 
+    // Await the result of the extraction function
+    if (config.bundleScripts || config.bundleStyles) {
+      const { html: processedHtml, styles: processedStyles, scripts: processedScripts } = await extractAndRemoveStylesAndScripts(data.html, config.bundleScripts, config.bundleStyles);
 
+      data.html = processedHtml;
+      
+      // combine in-file and added script blocks
+      scriptArray = processedScripts.concat(scriptArray);
+      styleArray = processedStyles.concat(styleArray);
+    }
 
+      if (config.bundleStyles && styleArray.length > 0) {
+        // const bundledStyleContent = styleArray.join('\n');
+        // Insert the style tag at the end of the <head> element
+        // data.html = await insertHtml(data.html, 'head', 'beforeend',`<style>\n/* Bundled styles */\n${bundledStyleContent}\n</style>`);  
+        rewriter.on('head', new HeadHandler());
+      }
+      if (config.bundleScripts && scriptArray.length > 0) {rewriter.on('body', new BodyHandler());}
+    
 
     return rewriter.transform(new Response(data.html, {
       headers: responseHeaders
@@ -1143,4 +1175,90 @@ export async function simplifyHtml(htmlText, startSelector, keepSelectors = []) 
 
 
 
+// This handler injects the bundled scripts at the end of the <body> tag.
+class BodyHandler {
+  /**
+   * Called when the rewriter encounters the <body> tag.
+   * @param {Element} element The <body> element.
+   */
+  element(element) {
+    if (config.bundleScripts && scriptArray.length > 0) {
+      // Join all the captured scripts and inject them into a new <script> tag.
+      const bundledScriptContent = scriptArray.join('\n');
+      element.append(`<script>\n/* Bundled scripts */\n${bundledScriptContent}\n</script>`, {
+        html: true
+      });
+    }
+  }
+}
 
+class HeadHandler {
+  /**
+   * Called when the rewriter encounters the <body> tag.
+   * @param {Element} element The <head> element.
+   */
+  element(element) {
+    if (config.bundleStyles && styleArray.length > 0) {
+      // Join all the captured scripts and inject them into a new <script> tag.
+      const bundledStyleContent = styleArray.join('\n');
+      element.append(`<style>\n/* Bundled styles */\n${bundledStyleContent}\n</style>`, {
+        html: true
+      });
+    }
+  }
+}
+
+
+/**
+ * Traverses an HTML string to extract and remove all <style> and <script> blocks.
+ *
+ * @param {string} html The HTML string to process.
+ * @returns {Promise<{html: string, styles: string[], scripts: string[]}>} An object containing the
+ * modified HTML string and arrays of extracted style and script contents.
+ */
+export async function extractAndRemoveStylesAndScripts(html, extractScripts = true, extractStyles = true) {
+  const styleArray = [];
+  const scriptArray = [];
+
+  // Use querySelectorAll to find all <style> and <script> tags.
+  // The { returnInnerHtml: true } option is essential to get the content of the tags.
+  const styleElements = await querySelectorAll(html, 'style', { returnInnerHtml: true });
+  const scriptElements = await querySelectorAll(html, 'script', { returnInnerHtml: true });
+
+  if (extractScripts) {
+    // Filter out <script> tags with a 'src' attribute, as they are links.
+    const allScriptTags = await querySelectorAll(html, 'script');
+    const scriptsToKeep = new Set();
+    for (const element of allScriptTags) {
+      if (element.includes('src=')) {
+        scriptsToKeep.add(element);
+      }
+    }
+
+    // Iterate through collected scripts, filtering out those with a 'src' attribute.
+    for (const [index, script] of scriptElements.entries()) {
+      if (!scriptsToKeep.has(allScriptTags[index])) {
+        scriptArray.push(script);
+      }
+    }
+  }
+
+  if (extractStyles) {
+    // Iterate through the collected content and populate the arrays.
+    for (const style of styleElements) {
+      styleArray.push(style);
+    }
+  }
+
+  // Use deleteElements to remove the original <style> and <script> tags from the HTML.
+  // This step modifies the HTML string to remove the original content.
+  let modifiedHtml = html;
+  if (extractStyles) modifiedHtml= await deleteElements(modifiedHtml, 'style');
+  if (extractScripts) modifiedHtml = await deleteElements(modifiedHtml, 'script:not([src])');
+  
+  return {
+    html: modifiedHtml,
+    styles: styleArray,
+    scripts: scriptArray,
+  };
+}
