@@ -444,5 +444,10 @@ a.active-link.title-link{
         display: none;
 }
 
+/* hide other elements */
+div#image-overlay {
+  display: none;
+}
+
 
        
