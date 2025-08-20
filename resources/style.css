@@ -1,6 +1,5 @@
   html, body {
     height: 100%;
-    background-color: hotPink;
   }
 
 *, *::before, *::after {
@@ -47,6 +46,7 @@ footer, header {
     flex: 1;
     display: flex;
     flex-direction: column;
+    background-color: hotPink;    
    }
 
     #site-header {
