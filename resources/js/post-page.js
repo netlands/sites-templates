@@ -1,4 +1,22 @@
 document.addEventListener('DOMContentLoaded', () => {
+
+    const overlayHTML = `
+      <div id="image-overlay">
+        <button id="close-overlay">✕</button>
+        <div id="zoom-container">
+          <img id="zoomed-image" src="" alt="Artwork" draggable="false" />
+        </div>
+        <div id="image-caption"></div>
+        <div id="zoom-preview">Zoom: 100%</div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', overlayHTML);
+
+
+  // Initialize zoom functionality  // This code handles zooming and panning of images in the overlay.
+  // It allows users to view images in detail by zooming in and out, panning around, and resetting the view.
+  // The overlay is displayed when an image with the class 'view-original' is clicked.
   const overlay = document.getElementById('image-overlay');
   const zoomedImage = document.getElementById('zoomed-image');
   const closeBtn = document.getElementById('close-overlay');
