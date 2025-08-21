@@ -20,6 +20,19 @@ export const config = {
   // Add other configurable values here as needed
 };
 
+// Pre-compiled regex patterns for better performance
+const ROUTE_PATTERNS = {
+  POST_PAGE: /^\/\d{4}\/\d{2}\/.*\.html$/,
+  STATIC_PAGE: /^\/p\/.*\.html$/,
+  LABEL_SEARCH: /^\/search\/label\/[^/]+/,
+  FULL_SEARCH: /^\/search\?q=/,
+};
+
+// start of page processing code
+import { test, querySelector, querySelectorAll, getAttribute, deleteElements, replaceElements, setAttributes, insertHtml } from './htmlparser.js'
+import { templateTagParser, injectLayoutClasses, cleanTitle, FinalCleanupHandler } from './templatehelper.js';
+import { cacheHelper, checkContentExistsAndCache, getCachedKV, resizeImage, extractBlogId, cleanBloggerArtifacts, escapeHtml } from './helpers.js';
+
 // Global arrays to store the contents of the tags to be bundled.
 let styleArray = [];
 let scriptArray = [];
@@ -36,11 +49,6 @@ function isDebugMode(url) {
     return value !== null && truthy.has(value.toLowerCase());
   });
 }
-
-// start of page processing code
-import { test, querySelector, querySelectorAll, getAttribute, deleteElements, replaceElements, setAttributes, insertHtml } from './htmlparser.js'
-import { templateTagParser, injectLayoutClasses, cleanTitle, FinalCleanupHandler } from './templatehelper.js';
-import { cacheHelper, checkContentExistsAndCache, getCachedKV, resizeImage, extractBlogId, cleanBloggerArtifacts, escapeHtml } from './helpers.js';
 
 let testHtml = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="A small, structured HTML file for testing purposes."><title>Test HTML Structure</title><link rel="stylesheet" href="styles.css"></head><body><header><h1 class="title">Welcome to My Test Page</h1><h2 id="sub-heading">Subheading: Testing HTML Structure</h2></header><main><div><h2 id="part1">Part 1</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div><div><h2 id="part2">Part 2</h2><p class="summary body-text">This is a paragraph inside a <code>div</code> element. It demonstrates basic HTML structure.</p><p class="body-text">Here is another paragraph with a <span style="color: blue;">highlighted span</span> for testing inline elements.</p></div></main><footer><h2 id="footer-heading">Footer Section</h2><p class="footer-text">Thank you for visiting this test page.</p></footer></body></html>';
 let lowResImage, highResImage;
@@ -137,22 +145,22 @@ const routes = [
     handler: handleMainPage
   },
   {
-    match: /^\/\d{4}\/\d{2}\/.*\.html$/.test(path),
+    match: ROUTE_PATTERNS.POST_PAGE.test(path),
     pageClass: 'post-page',
     handler: handlePostPage
   },
   {
-    match: /^\/p\/.*\.html$/.test(path),
+    match: ROUTE_PATTERNS.STATIC_PAGE.test(path),
     pageClass: 'static-page',
     handler: handleStaticPage
   },
   {
-    match: /^\/search\/label\/[^/]+/.test(path),
+    match: ROUTE_PATTERNS.LABEL_SEARCH.test(path),
     pageClass: 'label-search',
     handler: handleLabelSearch
   },
   {
-    match: /^\/search\?q=/.test(path + search),
+    match: ROUTE_PATTERNS.FULL_SEARCH.test(path + search),
     pageClass: 'full-search',
     handler: handleFullSearch
   },
