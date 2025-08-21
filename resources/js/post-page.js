@@ -190,7 +190,7 @@ zoomContainer.addEventListener('dblclick', () => {
 
 /* --------------------- Lazy Loading Images --------------------- */
 
-/*
+  
   // Select all images that have the data-original-src attribute.
   const images = document.querySelectorAll("img[data-original-src]");
 
@@ -238,5 +238,6 @@ zoomContainer.addEventListener('dblclick', () => {
 
   // Start observing all the images.
   images.forEach((img) => observer.observe(img));
+
+  
 });
-*/
