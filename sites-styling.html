@@ -192,28 +192,29 @@ if (getVisibleTextContent().includes('%logodark%')) {
 
 });
 
+  
 document.addEventListener("DOMContentLoaded", function () {
+  function attachSearchInterceptor() {
+    // The ONLY stable selector in Google Sites
+    const input = document.querySelector('input[aria-label="Search this site"]');
+    if (!input) {
+      // Retry until Google Sites finishes rendering the header
+      setTimeout(attachSearchInterceptor, 300);
+      return;
+    }
 
-  
-  console.log("DOM loaded");
-  const forms = document.querySelectorAll("form");
-  console.log("Forms found:", forms.length);
-  forms.forEach(f => console.log("Form action:", f.action));
-
-  
-  const searchForms = document.querySelectorAll('form[action*="search"]');
-  searchForms.forEach(form => {
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      const input = form.querySelector('input[type="text"], input[type="search"]');
-      if (input && input.value.trim()) {
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
         const q = encodeURIComponent(input.value.trim());
-        window.location.href = "/search?q=" + q;
+        if (q) {
+          window.location.href = "/search?q=" + q;
+        }
       }
     });
-  });
+  }
+
+  attachSearchInterceptor();
 });
-
-
   
 </script>
