@@ -196,7 +196,7 @@ if (getVisibleTextContent().includes('%logodark%')) {
 document.addEventListener("DOMContentLoaded", function () {
   function attachSearchInterceptor() {
     // The ONLY stable selector in Google Sites
-    const input = document.querySelector('input[aria-label="Search this site"]');
+    const input = document.querySelector('input[type="search"]');
     if (!input) {
       // Retry until Google Sites finishes rendering the header
       setTimeout(attachSearchInterceptor, 300);
