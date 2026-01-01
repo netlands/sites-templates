@@ -193,6 +193,14 @@ if (getVisibleTextContent().includes('%logodark%')) {
 });
 
 document.addEventListener("DOMContentLoaded", function () {
+
+  
+  console.log("DOM loaded");
+  const forms = document.querySelectorAll("form");
+  console.log("Forms found:", forms.length);
+  forms.forEach(f => console.log("Form action:", f.action));
+
+  
   const searchForms = document.querySelectorAll('form[action*="search"]');
   searchForms.forEach(form => {
     form.addEventListener("submit", function (e) {
