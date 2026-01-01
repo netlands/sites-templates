@@ -191,4 +191,21 @@ if (getVisibleTextContent().includes('%logodark%')) {
   } */
 
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+  const searchForms = document.querySelectorAll('form[action*="search"]');
+  searchForms.forEach(form => {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const input = form.querySelector('input[type="text"], input[type="search"]');
+      if (input && input.value.trim()) {
+        const q = encodeURIComponent(input.value.trim());
+        window.location.href = "/search?q=" + q;
+      }
+    });
+  });
+});
+
+
+  
 </script>
